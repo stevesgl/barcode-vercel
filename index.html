@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <!DOCTYPE html>
 <html>
 <head>
@@ -143,6 +144,29 @@
         let html5QrcodeScanner = new Html5QrcodeScanner(
             "reader", { fps: 10, qrbox: {width: 250, height: 250} });
         html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+=======
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Grocery Lens - Barcode Scanner</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <h1>Scan a Product Barcode</h1>
+    <div id="reader" style="width:300px;"></div>
+    <p id="result"></p>
+
+    <script>
+        function onScanSuccess(decodedText, decodedResult) {
+            document.getElementById('result').innerText = `Scanned GTIN: ${decodedText}`;
+            // Hook: Query local product cache and run additive matcher
+        }
+
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        html5QrcodeScanner.render(onScanSuccess);
+>>>>>>> f00182ac723b23165afa607ba11c2ea1370399fb
     </script>
 </body>
 </html>
