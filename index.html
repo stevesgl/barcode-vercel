@@ -141,8 +141,10 @@
         }
 
         function onScanFailure(error) {
-            // handle scan failure, usually better to ignore and keep scanning.
-            // console.warn(`Code scan error = ${error}`);
+            // This function will now display the camera error message on the screen
+            console.error(`Camera scan error = ${error}`);
+            document.getElementById('loadingSpinner').style.display = 'none'; // Hide spinner
+            document.getElementById('resultText').innerHTML = `<span class="error-message">Camera Error: ${error}</span>`;
         }
 
         let html5QrcodeScanner = new Html5QrcodeScanner(
