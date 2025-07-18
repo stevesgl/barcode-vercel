@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Barcode Scanner</title>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <title>Product Lookup</title>
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -15,23 +14,6 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
-        }
-        #reader {
-            width: 100%;
-            max-width: 500px;
-            border: 2px solid #4CAF50;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
-            padding: 15px;
-        }
-        #reader__dashboard_section_csr {
-            padding: 10px;
-            background-color: #e8f5e9;
-            border-top: 1px solid #4CAF50;
-            font-size: 0.9em;
-            color: #333;
         }
         #result {
             margin-top: 20px;
@@ -76,49 +58,106 @@
             color: #28a745;
             font-weight: bold;
         }
+
+        /* Styles for manual input */
+        #manual-input-container {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        #gtinInput {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            width: calc(100% - 22px); /* Adjust for padding and border */
+        }
+        #lookupButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px; /* Rounded corners for button */
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #lookupButton:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        #lookupButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .instruction-text {
+            font-size: 0.9em;
+            color: #555;
+            text-align: center;
+            margin-top: -5px; /* Adjust spacing */
+            margin-bottom: 10px;
+        }
     </style>
 </head>
 <body>
-    <h1>Scan Product Barcode</h1>
-    <div id="reader"></div>
+    <h1>Product Lookup</h1>
+
+    <div id="manual-input-container">
+        <h2>Enter Barcode (GTIN) Manually</h2>
+        <input type="text" id="gtinInput" placeholder="Enter the 12 or 13-digit barcode number (e.g., 7 86300 37004 2)">
+        <small class="instruction-text">Include all numbers, even those at the edges of the barcode.</small>
+        <button id="lookupButton">Lookup Product</button>
+    </div>
+
     <div id="result">
         <div class="loading-spinner" id="loadingSpinner"></div>
-        <span id="resultText">Scan a barcode to get product info...</span>
+        <span id="resultText">Enter a GTIN to get product info...</span>
     </div>
 
     <script type="text/javascript">
         // IMPORTANT: This URL now points to your live Render backend service!
         const API_ENDPOINT = "https://smart-grocery-backend-jxku.onrender.com/api/gtin-lookup"; 
 
-        function onScanSuccess(decodedText, decodedResult) {
-            console.log(`Code matched = ${decodedText}`, decodedResult);
-            document.getElementById('resultText').innerText = 'Processing GTIN...';
-            document.getElementById('loadingSpinner').style.display = 'block'; // Show spinner
+        const resultText = document.getElementById('resultText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const gtinInput = document.getElementById('gtinInput');
+        const lookupButton = document.getElementById('lookupButton');
+
+        // Function to handle successful barcode scan OR manual lookup
+        async function processGtin(gtin) {
+            resultText.innerText = 'Processing GTIN...';
+            loadingSpinner.style.display = 'block';
 
             // Send the GTIN to your Render API Endpoint
-            fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ gtin: decodedText })
-            })
-            .then(response => {
-                document.getElementById('loadingSpinner').style.display = 'none'; // Hide spinner
+            try {
+                const response = await fetch(API_ENDPOINT, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ gtin: gtin })
+                });
+
+                loadingSpinner.style.display = 'none';
                 if (!response.ok) {
-                    // If response is not 2xx, try to parse error message from response body
-                    return response.json().then(errorData => {
+                    const text = await response.text();
+                    try {
+                        const errorData = JSON.parse(text);
                         throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                    }).catch(() => {
-                        // If response is not JSON, use the raw text
-                        return response.text().then(text => {
-                            throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 100)}...`);
-                        });
-                    });
+                    } catch (e) {
+                        throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 100)}...`);
+                    }
                 }
-                return response.json();
-            })
-            .then(data => {
+                const data = await response.json();
+                
                 console.log('API Response:', data);
                 let resultMessage = `GTIN: <strong>${data.gtin}</strong><br>`;
                 if (data.status === "found_in_cache") {
@@ -131,25 +170,23 @@
                 resultMessage += `Description: ${data.data ? data.data.description : 'N/A'}<br>`;
                 resultMessage += `Ingredients: ${data.data ? data.data.ingredients : 'N/A'}`;
                 document.getElementById('resultText').innerHTML = resultMessage;
-            })
-            .catch(error => {
-                document.getElementById('loadingSpinner').style.display = 'none'; // Hide spinner
+
+            } catch (error) {
+                loadingSpinner.style.display = 'none';
                 console.error('Error:', error);
-                // Display a more detailed error message to the user
                 document.getElementById('resultText').innerHTML = `<span class="error-message">Error: ${error.message || 'Unknown error occurred.'}</span>`;
-            });
+            }
         }
 
-        function onScanFailure(error) {
-            // This function will now display the camera error message on the screen
-            console.error(`Camera scan error = ${error}`);
-            document.getElementById('loadingSpinner').style.display = 'none'; // Hide spinner
-            document.getElementById('resultText').innerHTML = `<span class="error-message">Camera Error: ${error}</span>`;
-        }
-
-        let html5QrcodeScanner = new Html5QrcodeScanner(
-            "reader", { fps: 10, qrbox: {width: 250, height: 250} });
-        html5QrcodeScanner.render(onScanSuccess, onScanFailure);
+        // Event listener for manual lookup button
+        lookupButton.addEventListener('click', () => {
+            const gtin = gtinInput.value.trim();
+            if (gtin) {
+                processGtin(gtin);
+            } else {
+                resultText.innerHTML = '<span class="error-message">Please enter a GTIN.</span>';
+            }
+        });
     </script>
 </body>
 </html>
