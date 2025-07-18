@@ -87,17 +87,16 @@
     </div>
 
     <script type="text/javascript">
-        // IMPORTANT: Replace this with YOUR Vercel Serverless Function URL
-        const VERCEL_API_ENDPOINT = "https://smart-grocery-backend.vercel.app/api/gtin-lookup";
-        // Example: "https://smart-grocery-lens-api.vercel.app/api/gtin-lookup"
+        // IMPORTANT: This URL now points to your live Render backend service!
+        const API_ENDPOINT = "https://smart-grocery-backend-jxku.onrender.com/api/gtin-lookup"; 
 
         function onScanSuccess(decodedText, decodedResult) {
             console.log(`Code matched = ${decodedText}`, decodedResult);
             document.getElementById('resultText').innerText = 'Processing GTIN...';
             document.getElementById('loadingSpinner').style.display = 'block'; // Show spinner
 
-            // Send the GTIN to your Vercel Serverless Function
-            fetch(VERCEL_API_ENDPOINT, {
+            // Send the GTIN to your Render API Endpoint
+            fetch(API_ENDPOINT, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,14 +107,13 @@
                 document.getElementById('loadingSpinner').style.display = 'none'; // Hide spinner
                 if (!response.ok) {
                     // If response is not 2xx, try to parse error message from response body
-                    return response.text().then(text => { // Changed to .text() to catch non-JSON errors
-                        try {
-                            const errorData = JSON.parse(text);
-                            throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                        } catch (e) {
-                            // If response is not JSON, use the raw text
+                    return response.json().then(errorData => {
+                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                    }).catch(() => {
+                        // If response is not JSON, use the raw text
+                        return response.text().then(text => {
                             throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 100)}...`);
-                        }
+                        });
                     });
                 }
                 return response.json();
