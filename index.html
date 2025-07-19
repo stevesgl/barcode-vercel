@@ -171,7 +171,7 @@
 
         // Function to handle successful barcode scan OR manual lookup
         async function processGtin(gtin) {
-            resultText.innerText = 'Processing GTIN...';
+            resultText.innerHTML = 'Processing GTIN...<br>Thanks for keeping them honest!'; // Added new line here
             loadingSpinner.style.display = 'block';
             trustReportContainer.style.display = 'none'; // Hide previous report
 
@@ -206,7 +206,8 @@
                 } else if (data.status === "not_found") {
                     resultMessage += `<span class="error-message">Product Not Found!</span><br>`;
                 }
-                resultMessage += `Description: ${data.description || 'N/A'}<br>`; // Directly access description/ingredients
+                // FIX: Access description and ingredients directly from 'data' object
+                resultMessage += `Description: ${data.description || 'N/A'}<br>`; 
                 resultMessage += `Ingredients: ${data.ingredients || 'N/A'}`;
                 
                 document.getElementById('resultText').innerHTML = resultMessage;
