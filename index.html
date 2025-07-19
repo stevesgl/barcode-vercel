@@ -105,6 +105,40 @@
             margin-top: -5px; /* Adjust spacing */
             margin-bottom: 10px;
         }
+        /* Styles for the Trust Report display */
+        #trustReportContainer {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #cce5ff; /* Light blue border */
+            border-radius: 8px;
+            background-color: #e6f7ff; /* Light blue background */
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: left; /* Align markdown content to left */
+            color: #333;
+            display: none; /* Hidden by default */
+        }
+        #trustReportContainer h2, #trustReportContainer h3 {
+            color: #0056b3; /* Darker blue for headings */
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        #trustReportContainer ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+        #trustReportContainer li {
+            margin-bottom: 5px;
+        }
+        #trustReportContainer strong {
+            color: #004085; /* Even darker blue for strong text */
+        }
+        #trustReportContainer em {
+            font-style: italic;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -112,7 +146,7 @@
 
     <div id="manual-input-container">
         <h2>Enter Barcode (GTIN) Manually</h2>
-        <input type="text" id="gtinInput" placeholder="Enter the 12 or 13-digit barcode number (e.g., 7 86300 37004 2)">
+        <input type="text" id="gtinInput" placeholder="Enter the 12 or 13-digit barcode number (e.g., 049000000426)">
         <small class="instruction-text">Include all numbers, even those at the edges of the barcode.</small>
         <button id="lookupButton">Lookup Product</button>
     </div>
@@ -122,6 +156,9 @@
         <span id="resultText">Enter a GTIN to get product info...</span>
     </div>
 
+    <!-- New container for the Trust Report -->
+    <div id="trustReportContainer"></div>
+
     <script type="text/javascript">
         // IMPORTANT: This URL now points to your live Render backend service!
         const API_ENDPOINT = "https://smart-grocery-backend-jxku.onrender.com/api/gtin-lookup"; 
@@ -130,11 +167,13 @@
         const loadingSpinner = document.getElementById('loadingSpinner');
         const gtinInput = document.getElementById('gtinInput');
         const lookupButton = document.getElementById('lookupButton');
+        const trustReportContainer = document.getElementById('trustReportContainer'); // Get the new container
 
         // Function to handle successful barcode scan OR manual lookup
         async function processGtin(gtin) {
             resultText.innerText = 'Processing GTIN...';
             loadingSpinner.style.display = 'block';
+            trustReportContainer.style.display = 'none'; // Hide previous report
 
             // Send the GTIN to your Render API Endpoint
             try {
@@ -167,14 +206,24 @@
                 } else if (data.status === "not_found") {
                     resultMessage += `<span class="error-message">Product Not Found!</span><br>`;
                 }
-                resultMessage += `Description: ${data.data ? data.data.description : 'N/A'}<br>`;
-                resultMessage += `Ingredients: ${data.data ? data.data.ingredients : 'N/A'}`;
+                resultMessage += `Description: ${data.description || 'N/A'}<br>`; // Directly access description/ingredients
+                resultMessage += `Ingredients: ${data.ingredients || 'N/A'}`;
+                
                 document.getElementById('resultText').innerHTML = resultMessage;
+
+                // Display the Trust Report Markdown
+                if (data.trust_report_markdown) {
+                    trustReportContainer.innerHTML = data.trust_report_markdown;
+                    trustReportContainer.style.display = 'block'; // Show the container
+                } else {
+                    trustReportContainer.style.display = 'none'; // Ensure it's hidden if no report
+                }
 
             } catch (error) {
                 loadingSpinner.style.display = 'none';
                 console.error('Error:', error);
                 document.getElementById('resultText').innerHTML = `<span class="error-message">Error: ${error.message || 'Unknown error occurred.'}</span>`;
+                trustReportContainer.style.display = 'none'; // Hide report on error
             }
         }
 
@@ -185,6 +234,7 @@
                 processGtin(gtin);
             } else {
                 resultText.innerHTML = '<span class="error-message">Please enter a GTIN.</span>';
+                trustReportContainer.style.display = 'none'; // Hide report if input is empty
             }
         });
     </script>
