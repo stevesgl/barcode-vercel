@@ -1,180 +1,196 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery Scanner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Product Lookup</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
-            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
         }
-        .container {
-            max-width: 90%;
-            margin: 2rem auto;
-            padding: 1.5rem;
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
             background-color: #fff;
-            border-radius: 1rem;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-        .btn {
-            @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200;
-        }
-        .btn-primary {
-            @apply bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75;
-        }
-        .btn-secondary {
-            @apply bg-gray-200 text-gray-800 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-75;
-        }
-        .input-field {
-            @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500;
-        }
-        /* Dedicated camera viewport styling */
-        #cameraViewport {
             width: 100%;
-            max-width: 640px; /* Max width for video stream */
-            margin: 1.5rem auto; /* Added margin for spacing */
-            border: 2px solid #a78bfa; /* Purple border for camera */
-            border-radius: 0.75rem; /* Rounded corners */
-            overflow: hidden;
-            background-color: #000; /* Black background for video */
-            display: none; /* Hidden by default, shown when camera activates */
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            font-size: 1.1em;
+            color: #333;
+            min-height: 50px; /* Ensure space for results */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
-        #cameraViewport video {
+        #result strong {
+            color: #28a745;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #4CAF50;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-top: 10px;
+            display: none; /* Hidden by default */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .success-message {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        /* Styles for manual input */
+        #manual-input-container {
             width: 100%;
-            height: auto;
-            display: block;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
         }
-        /* Markdown styling for the trust report */
-        .markdown-body h1 { @apply text-3xl font-bold mb-4; }
-        .markdown-body h2 { @apply text-2xl font-semibold mb-3; }
-        .markdown-body h3 { @apply text-xl font-semibold mb-2; }
-        .markdown-body p { @apply mb-2 leading-relaxed; }
-        .markdown-body ul { @apply list-disc pl-5 mb-2; }
-        .markdown-body ol { @apply list-decimal pl-5 mb-2; }
-        .markdown-body li { @apply mb-1; }
-        .markdown-body strong { @apply font-bold; }
-        .markdown-body em { @apply italic; }
-        .markdown-body hr { @apply border-t border-gray-300 my-6; }
-        .markdown-body pre {
-            @apply bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm;
-            white-space: pre-wrap; /* Ensures long lines wrap */
-            word-wrap: break-word;
+        #gtinInput {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            width: calc(100% - 22px); /* Adjust for padding and border */
         }
-        .markdown-body code { @apply font-mono bg-gray-200 px-1 py-0.5 rounded text-sm; }
+        #lookupButton {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50px; /* Rounded corners for button */
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        #lookupButton:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+        }
+        #lookupButton:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .instruction-text {
+            font-size: 0.9em;
+            color: #555;
+            text-align: center;
+            margin-top: -5px; /* Adjust spacing */
+            margin-bottom: 10px;
+        }
+        /* Styles for the Trust Report display */
+        #trustReportContainer {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #cce5ff; /* Light blue border */
+            border-radius: 8px;
+            background-color: #e6f7ff; /* Light blue background */
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: left; /* Align markdown content to left */
+            color: #333;
+            display: none; /* Hidden by default */
+        }
+        #trustReportContainer h2, #trustReportContainer h3 {
+            color: #0056b3; /* Darker blue for headings */
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        #trustReportContainer ul {
+            list-style-type: disc;
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+        #trustReportContainer ol { /* Added style for ordered lists */
+            list-style-type: decimal;
+            padding-left: 20px;
+            margin-top: 5px;
+        }
+        #trustReportContainer li {
+            margin-bottom: 5px;
+        }
+        #trustReportContainer strong {
+            color: #004085; /* Even darker blue for strong text */
+        }
+        #trustReportContainer em {
+            font-style: italic;
+            color: #666;
+        }
+        #trustReportContainer hr { /* Style for horizontal rule */
+            border-top: 1px solid #a7d9ff;
+            margin: 15px 0;
+        }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-    <div class="container bg-white p-8 rounded-xl shadow-lg w-full max-w-2xl">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">Grocery Scanner</h1>
+<body>
+    <h1>Product Lookup</h1>
 
-        <!-- Initial Welcome Message -->
-        <div id="welcomeMessage" class="text-center text-gray-600 mb-6 p-4 bg-blue-50 rounded-lg">
-            <p class="font-semibold mb-2">Welcome to your Grocery Scanner!</p>
-            <p>Enter a GTIN/UPC manually or use your camera to scan a barcode.</p>
-        </div>
-
-        <div class="mb-6">
-            <label for="gtinInput" class="block text-gray-700 text-sm font-semibold mb-2">Enter GTIN/UPC:</label>
-            <input type="text" id="gtinInput" class="input-field" placeholder="e.g., 012345678905">
-        </div>
-
-        <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
-            <button id="scanButton" class="btn btn-primary w-full">Scan Barcode (Camera)</button>
-            <button id="lookupButton" class="btn btn-secondary w-full">Lookup GTIN</button>
-        </div>
-
-        <!-- Dedicated Camera Viewport -->
-        <div id="cameraViewport" class="relative"></div>
-
-        <div id="loadingIndicator" class="text-center text-blue-600 font-medium hidden my-4">
-            <!-- Specific loading messages will be inserted here -->
-        </div>
-
-        <div id="productInfo" class="my-6 p-4 bg-blue-50 rounded-lg border border-blue-200 hidden">
-            <h2 class="text-xl font-semibold text-blue-800 mb-2">Product Details</h2>
-            <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin"></span></p>
-            <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription"></span></p>
-            <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients"></span></p>
-        </div>
-
-        <div id="trustReport" class="my-6 p-4 bg-green-50 rounded-lg border border-green-200 hidden markdown-body">
-            <!-- Trust report markdown will be rendered here -->
-        </div>
-
-        <div id="errorMessage" class="my-6 p-4 bg-red-100 rounded-lg border border-red-300 text-red-700 hidden">
-            <!-- Error messages will be displayed here -->
-        </div>
+    <div id="manual-input-container">
+        <h2>Enter Barcode (GTIN) Manually</h2>
+        <input type="text" id="gtinInput" placeholder="Enter the 12 or 13-digit barcode number (e.g., 049000000426)">
+        <small class="instruction-text">Include all numbers, even those at the edges of the barcode.</small>
+        <button id="lookupButton">Lookup Product</button>
     </div>
 
-    <script src="https://unpkg.com/quagga-ui@0.1.0/dist/quagga-ui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script> <!-- Marked.js for Markdown rendering -->
+    <div id="result">
+        <div class="loading-spinner" id="loadingSpinner"></div>
+        <span id="resultText">Enter a GTIN to get product info...</span>
+    </div>
 
-    <script>
+    <!-- New container for the Trust Report -->
+    <div id="trustReportContainer"></div>
+
+    <!-- Include Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script type="text/javascript">
+        // IMPORTANT: This URL now points to your live Render backend service!
+        const API_ENDPOINT = "https://smart-grocery-backend-jxku.onrender.com/api/gtin-lookup"; 
+
+        const resultText = document.getElementById('resultText');
+        const loadingSpinner = document.getElementById('loadingSpinner');
         const gtinInput = document.getElementById('gtinInput');
-        const scanButton = document.getElementById('scanButton');
         const lookupButton = document.getElementById('lookupButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const productInfo = document.getElementById('productInfo');
-        const displayGtin = document.getElementById('displayGtin');
-        const displayDescription = document.getElementById('displayDescription');
-        const displayIngredients = document.getElementById('displayIngredients');
-        const trustReportDiv = document.getElementById('trustReport');
-        const errorMessageDiv = document.getElementById('errorMessage');
-        const welcomeMessage = document.getElementById('welcomeMessage');
-        const cameraViewport = document.getElementById('cameraViewport'); // New camera viewport element
+        const trustReportContainer = document.getElementById('trustReportContainer'); // Get the new container
 
-        // IMPORTANT: Replace with your actual Render/Vercel backend URL
-        const BACKEND_API_URL = 'YOUR_RENDER_BACKEND_URL/api/gtin-lookup'; 
-        // Example: 'https://your-app-name.onrender.com/api/gtin-lookup'
+        // Function to handle successful barcode scan OR manual lookup
+        async function processGtin(gtin) {
+            resultText.innerHTML = 'Processing GTIN...<br>Thanks for keeping them honest!'; // Added new line here
+            loadingSpinner.style.display = 'block';
+            trustReportContainer.style.display = 'none'; // Hide previous report
 
-        // Function to show messages (errors or loading)
-        function showMessage(element, message, isError = false) {
-            element.textContent = message;
-            element.classList.remove('hidden');
-            if (isError) {
-                element.classList.remove('bg-blue-50', 'text-blue-600');
-                element.classList.add('bg-red-100', 'text-red-700');
-            } else {
-                element.classList.remove('bg-red-100', 'text-red-700');
-                element.classList.add('bg-blue-50', 'text-blue-600');
-            }
-        }
-
-        // Function to hide all info/error sections
-        function hideAllSections() {
-            welcomeMessage.classList.add('hidden'); // Hide welcome message after first action
-            loadingIndicator.classList.add('hidden');
-            productInfo.classList.add('hidden');
-            trustReportDiv.classList.add('hidden');
-            errorMessageDiv.classList.add('hidden');
-            cameraViewport.classList.add('hidden'); // Hide camera viewport
-        }
-
-        // Function to enable/disable buttons
-        function setButtonsDisabled(disabled) {
-            scanButton.disabled = disabled;
-            lookupButton.disabled = disabled;
-            if (disabled) {
-                scanButton.classList.add('opacity-50', 'cursor-not-allowed');
-                lookupButton.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                scanButton.classList.remove('opacity-50', 'cursor-not-allowed');
-                lookupButton.classList.remove('opacity-50', 'cursor-not-allowed');
-            }
-        }
-
-        // Function to fetch product data from backend
-        async function fetchProductData(gtin) {
-            hideAllSections();
-            setButtonsDisabled(true); // Disable buttons
-            showMessage(loadingIndicator, 'Fetching product data...');
-
+            // Send the GTIN to your Render API Endpoint
             try {
-                const response = await fetch(BACKEND_API_URL, {
+                const response = await fetch(API_ENDPOINT, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -182,104 +198,59 @@
                     body: JSON.stringify({ gtin: gtin })
                 });
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    loadingIndicator.classList.add('hidden');
-                    productInfo.classList.remove('hidden');
-                    
-                    displayGtin.textContent = data.gtin;
-                    displayDescription.textContent = data.description;
-                    displayIngredients.textContent = data.ingredients || 'No ingredients listed.';
-
-                    if (data.trust_report_markdown && data.trust_report_markdown !== "N/A") {
-                        trustReportDiv.innerHTML = marked.parse(data.trust_report_markdown);
-                        trustReportDiv.classList.remove('hidden');
-                    } else {
-                        trustReportDiv.classList.add('hidden');
+                loadingSpinner.style.display = 'none';
+                if (!response.ok) {
+                    const text = await response.text();
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
+                    } catch (e) {
+                        // This catch block handles the "Unexpected token 'T'" error
+                        throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 100)}...`);
                     }
-
-                } else {
-                    showMessage(errorMessageDiv, `Error: ${data.message || 'Product not found or an error occurred.'}`, true);
                 }
+                const data = await response.json();
+                
+                console.log('API Response:', data);
+                let resultMessage = `GTIN: <strong>${data.gtin}</strong><br>`;
+                if (data.status === "found_in_cache") {
+                    resultMessage += `<span class="success-message">Found in Cache!</span><br>`;
+                } else if (data.status === "pulled_from_usda_and_cached") {
+                    resultMessage += `<span class="success-message">Pulled from USDA & Cached!</span><br>`;
+                } else if (data.status === "not_found") {
+                    resultMessage += `<span class="error-message">Product Not Found!</span><br>`;
+                }
+                // FIX: Access description and ingredients directly from 'data' object
+                resultMessage += `Description: ${data.description || 'N/A'}<br>`; 
+                resultMessage += `Ingredients: ${data.ingredients || 'N/A'}`;
+                
+                document.getElementById('resultText').innerHTML = resultMessage;
+
+                // Display the Trust Report Markdown using marked.js
+                if (data.data_report_markdown) { // Changed from trust_report_markdown to data_report_markdown
+                    trustReportContainer.innerHTML = marked.parse(data.data_report_markdown);
+                    trustReportContainer.style.display = 'block'; // Show the container
+                } else {
+                    trustReportContainer.style.display = 'none'; // Ensure it's hidden if no report
+                }
+
             } catch (error) {
-                console.error('Fetch error:', error);
-                showMessage(errorMessageDiv, `Network error: Could not connect to the server. ${error.message}`, true);
-            } finally {
-                setButtonsDisabled(false); // Re-enable buttons
+                loadingSpinner.style.display = 'none';
+                console.error('Error:', error);
+                document.getElementById('resultText').innerHTML = `<span class="error-message">Error: ${error.message || 'Unknown error occurred.'}</span>`;
+                trustReportContainer.style.display = 'none'; // Hide report on error
             }
         }
 
-        // Event listener for Lookup button
+        // Event listener for manual lookup button
         lookupButton.addEventListener('click', () => {
             const gtin = gtinInput.value.trim();
             if (gtin) {
-                fetchProductData(gtin);
+                processGtin(gtin);
             } else {
-                hideAllSections(); // Clear previous results/messages
-                showMessage(errorMessageDiv, 'Please enter a GTIN/UPC.', true);
+                resultText.innerHTML = '<span class="error-message">Please enter a GTIN.</span>';
+                trustReportContainer.style.display = 'none'; // Hide report if input is empty
             }
-        });
-
-        // Event listener for Scan Barcode button (using QuaggaUI)
-        scanButton.addEventListener('click', () => {
-            hideAllSections();
-            setButtonsDisabled(true); // Disable buttons
-            showMessage(loadingIndicator, 'Activating camera for scan...');
-            cameraViewport.classList.remove('hidden'); // Show camera viewport
-
-            QuaggaUI.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: cameraViewport // Target the new camera viewport
-                },
-                decoder: {
-                    readers: ["ean_reader", "upc_reader"]
-                }
-            }, function(err) {
-                if (err) {
-                    console.error(err);
-                    showMessage(errorMessageDiv, `Camera error: ${err.message || 'Could not start camera.'}`, true);
-                    setButtonsDisabled(false); // Re-enable buttons on error
-                    cameraViewport.classList.add('hidden'); // Hide camera viewport on error
-                    return;
-                }
-                loadingIndicator.classList.add('hidden'); // Hide loading text once camera is active
-                console.log("Initialization finished. Ready to start");
-                QuaggaUI.start();
-            });
-
-            QuaggaUI.onDetected(function(result) {
-                QuaggaUI.stop(); // Stop scanning after first detection
-                cameraViewport.classList.add('hidden'); // Hide camera viewport after scan
-                setButtonsDisabled(false); // Re-enable buttons
-                const gtin = result.codeResult.code;
-                gtinInput.value = gtin; // Populate input field
-                fetchProductData(gtin); // Fetch data for the scanned GTIN
-            });
-
-            // Optional: visual feedback during scanning (uncomment if desired)
-            // QuaggaUI.onProcessed(function(result) {
-            //     var drawingCtx = QuaggaUI.canvas.ctx.overlay;
-            //     var drawingCanvas = QuaggaUI.canvas.dom.overlay;
-            //     if (result) {
-            //         if (result.boxes) {
-            //             drawingCtx.clearRect(0, 0, parseInt(drawingCanvas.getAttribute("width")), parseInt(drawingCanvas.getAttribute("height")));
-            //             result.boxes.filter(function (box) {
-            //                 return box !== result.box;
-            //             }).forEach(function (box) {
-            //                 Quagga.ImageDebug.drawPath(box, {x: 0, y: 1}, drawingCtx, {color: "green", lineWidth: 2});
-            //             });
-            //         }
-            //         if (result.box) {
-            //             Quagga.ImageDebug.drawPath(result.box, {x: 0, y: 1}, drawingCtx, {color: "#00F", lineWidth: 2});
-            //         }
-            //         if (result.codeResult && result.codeResult.code) {
-            //             Quagga.ImageDebug.drawPath(result.line, {x: 'x', y: 'y'}, drawingCtx, {color: 'red', lineWidth: 3});
-            //         }
-            //     }
-            // });
         });
     </script>
 </body>
