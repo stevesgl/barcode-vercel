@@ -1,61 +1,232 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grocery Product Scanner</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        /* Optional: Add custom styles here if Tailwind alone isn't enough */
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        /* Ensure the modal is always on top */
-        .modal {
-            z-index: 1000;
-        }
-    </style>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-    <!-- Main container with overall vertical spacing -->
-    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center space-y-6">
-        <h1 class="text-3xl font-bold text-gray-800 mb-4">Grocery Product Scanner</h1>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Grocery Product Scanner</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <style>
+            /* Optional: Add custom styles here if Tailwind alone isn't enough */
+            body {
+                font-family: 'Inter', sans-serif;
+            }
+            /* Ensure the modal is always on top */
+            .modal {
+                z-index: 1000;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+        <!-- Main container with overall vertical spacing -->
+        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center space-y-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Grocery Product Scanner</h1>
 
-        <div class="mb-6 space-y-4">
-            <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
-            <!-- Input field with updated placeholder text -->
-            <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
-            <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+            <div class="mb-6 space-y-4">
+                <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
+                <!-- Input field with updated placeholder text -->
+                <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
+                <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+            </div>
+
+            <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
+
+            <!-- Product details section with fade-in transition -->
+            <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
+                <div class="text-left space-y-2">
+                    <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
+                    <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
+                    <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
+                    <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
+                    <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
+                </div>
+                <!-- The prose class handles internal spacing for markdown-rendered content -->
+                <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
+                
+                <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
+                <!-- The backend's data_report_markdown should now contain the structured categories directly,
+                     so these specific ul elements might not be strictly needed for display if markdown is rich.
+                     However, they are kept for consistency with the JS logic that *could* populate them. -->
+                <div id="fda-substances-section" class="mt-4 hidden">
+                    <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
+                    <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
+                </div>
+                <div id="common-ingredients-section" class="mt-4 hidden">
+                    <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
+                    <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
+                </div>
+                <div id="unidentified-ingredients-section" class="mt-4 hidden">
+                    <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
+                    <ul id="unidentified-ingredients" class="list-disc list-inside text-gray-600"></ul>
+                </div>
+
+            </div>
         </div>
 
-        <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
+        <!-- Message Modal -->
+        <div id="messageModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+            <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center relative">
+                <button id="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
+                <h3 id="modalTitle" class="text-xl font-semibold text-gray-800 mb-4"></h3>
+                <p id="modalMessage" class="text-gray-600 mb-6"></p>
+                <button id="modalOkButton" class="bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
+            </div>
+        </div>
 
-        <!-- Product details section with fade-in transition -->
-        <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
-            <div class="text-left space-y-2">
-                <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
-            </div>
-            <!-- The prose class handles internal spacing for markdown-rendered content -->
-            <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
-            
-            <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
-            <!-- The backend's data_report_markdown should now contain the structured categories directly,
-                 so these specific ul elements might not be strictly needed for display if markdown is rich.
-                 However, they are kept for consistency with the JS logic that *could* populate them. -->
-            <div id="fda-substances-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
-                <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
-            </div>
-            <div id="common-ingredients-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
-                <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
-            </div>
-            <div id="unidentified-ingredients-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
-                <ul id="unidentifi
+        <script>
+            const gtinInput = document.getElementById('gtinInput');
+            const scanButton = document.getElementById('scanButton');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const productDetailsDiv = document.getElementById('productDetails');
+            const displayGtin = document.getElementById('displayGtin');
+            const displayDescription = document.getElementById('displayDescription');
+            const displayIngredients = document.getElementById('displayIngredients');
+            const displayNovaScore = document.getElementById('displayNovaScore');
+            const displayNovaDescription = document.getElementById('displayNovaDescription');
+            const dataReportMarkdown = document.getElementById('dataReportMarkdown');
+
+            // Modal elements
+            const messageModal = document.getElementById('messageModal');
+            const closeModalButton = document.getElementById('closeModal');
+            const modalOkButton = document.getElementById('modalOkButton');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalMessage = document.getElementById('modalMessage');
+
+            // Ingredient list elements (if populated separately from markdown)
+            const fdaSubstancesList = document.getElementById('fda-substances');
+            const commonIngredientsList = document.getElementById('common-ingredients');
+            const unidentifiedIngredientsList = document.getElementById('unidentified-ingredients');
+            const fdaSubstancesSection = document.getElementById('fda-substances-section');
+            const commonIngredientsSection = document.getElementById('common-ingredients-section');
+            const unidentifiedIngredientsSection = document.getElementById('unidentified-ingredients-section');
+
+
+            // Show modal function
+            function showModal(title, message) {
+                modalTitle.textContent = title;
+                modalMessage.textContent = message;
+                messageModal.classList.remove('hidden');
+            }
+
+            // Hide modal function
+            function hideModal() {
+                messageModal.classList.add('hidden');
+            }
+
+            // Event listeners for modal buttons
+            closeModalButton.addEventListener('click', hideModal);
+            modalOkButton.addEventListener('click', hideModal);
+
+            scanButton.addEventListener('click', async () => {
+                // ADD THIS LINE:
+                console.log("Scan Product button clicked!"); 
+
+                const gtin = gtinInput.value.trim();
+                if (!gtin) {
+                    showModal('Input Error', 'Please enter a GTIN.');
+                    return;
+                }
+
+                loadingIndicator.classList.remove('hidden');
+                // Ensure productDetailsDiv is hidden and opaque before new scan
+                productDetailsDiv.classList.add('opacity-0', 'hidden');
+
+                // Clear previous results before new scan
+                displayGtin.textContent = 'N/A';
+                displayDescription.textContent = 'N/A';
+                displayIngredients.textContent = 'N/A';
+                displayNovaScore.textContent = 'N/A';
+                displayNovaDescription.textContent = 'N/A';
+                dataReportMarkdown.innerHTML = ''; // Clear markdown content
+
+                // Clear ingredient lists and hide their sections
+                fdaSubstancesList.innerHTML = '';
+                commonIngredientsList.innerHTML = '';
+                unidentifiedIngredientsList.innerHTML = '';
+                fdaSubstancesSection.classList.add('hidden');
+                commonIngredientsSection.classList.add('hidden');
+                unidentifiedIngredientsSection.classList.add('hidden');
+
+
+                try {
+                    // Ensure the API_BASE_URL is correct for your Render backend
+                    const API_BASE_URL = 'https://smart-grocery-backend-jxku.onrender.com'; // Replace with your actual Render backend URL
+                    const response = await fetch(`${API_BASE_URL}/gtin-lookup`, { // Use POST and send JSON body
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ gtin: gtin })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log('Frontend received and parsed data:', data);
+
+                        displayGtin.textContent = data.gtin || 'N/A';
+                        displayDescription.textContent = data.description || 'N/A';
+                        displayIngredients.textContent = data.ingredients || 'N/A';
+                        displayNovaScore.textContent = data.nova_score || 'N/A';
+                        displayNovaDescription.textContent = data.nova_description || 'N/A';
+
+                        // Render markdown content
+                        if (data.data_report_markdown) {
+                            dataReportMarkdown.innerHTML = marked.parse(data.data_report_markdown);
+                        } else {
+                            dataReportMarkdown.innerHTML = '<p class="text-gray-500">No detailed report available.</p>';
+                        }
+
+                        // Populate ingredient lists if data is available
+                        if (data.fda_substances && data.fda_substances.length > 0) {
+                            data.fda_substances.forEach(item => {
+                                const li = document.createElement('li');
+                                li.textContent = item;
+                                fdaSubstancesList.appendChild(li);
+                            });
+                            fdaSubstancesSection.classList.remove('hidden');
+                        }
+                        if (data.common_ingredients && data.common_ingredients.length > 0) {
+                            data.common_ingredients.forEach(item => {
+                                const li = document.createElement('li');
+                                li.textContent = item;
+                                commonIngredientsList.appendChild(li);
+                            });
+                            commonIngredientsSection.classList.remove('hidden');
+                        }
+                        if (data.unidentified_ingredients && data.unidentified_ingredients.length > 0) {
+                            data.unidentified_ingredients.forEach(item => {
+                                const li = document.createElement('li');
+                                li.textContent = item;
+                                unidentifiedIngredientsList.appendChild(li);
+                            });
+                            unidentifiedIngredientsSection.classList.remove('hidden');
+                        }
+
+
+                        // Show product details with fade-in transition
+                        productDetailsDiv.classList.remove('hidden');
+                        // Force reflow/repaint to ensure CSS transition applies correctly
+                        void productDetailsDiv.offsetWidth;
+                        productDetailsDiv.classList.remove('opacity-0');
+                        productDetailsDiv.classList.add('opacity-100');
+
+                    } else {
+                        const errorData = await response.json();
+                        showModal('API Error', errorData.error || 'An unknown error occurred.');
+                        // Ensure product details remain hidden on error
+                        productDetailsDiv.classList.add('hidden', 'opacity-0');
+                    }
+                } catch (error) {
+                    console.error('Fetch error:', error);
+                    showModal('Network Error', 'Could not connect to the backend server. Please check your internet connection or the API URL.');
+                    // Ensure product details remain hidden on error
+                    productDetailsDiv.classList.add('hidden', 'opacity-0');
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                }
+            });
+        </script>
+    </body>
+    </html>
+    
