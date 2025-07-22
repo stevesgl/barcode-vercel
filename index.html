@@ -1,67 +1,65 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Grocery Product Scanner</title>
-        <script src="https://cdn.tailwindcss.com"></script>
-        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-        <style>
-            /* Optional: Add custom styles here if Tailwind alone isn't enough */
-            body {
-                font-family: 'Inter', sans-serif;
-            }
-            /* Ensure the modal is always on top */
-            .modal {
-                z-index: 1000;
-            }
-        </style>
-    </head>
-    <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-        <!-- Main container with overall vertical spacing -->
-        <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center space-y-6">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4">Grocery Product Scanner</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery Product Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* Optional: Add custom styles here if Tailwind alone isn't enough */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Ensure the modal is always on top */
+        .modal {
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <!-- Main container with overall vertical spacing -->
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Grocery Product Scanner</h1>
 
-            <div class="mb-6 space-y-4">
-                <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
-                <!-- Input field with updated placeholder text -->
-                <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
-                <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+        <div class="mb-6 space-y-4">
+            <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
+            <!-- Input field with updated placeholder text -->
+            <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
+            <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+        </div>
+
+        <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
+
+        <!-- Product details section with fade-in transition -->
+        <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
+            <div class="text-left space-y-2">
+                <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
+            </div>
+            <!-- The prose class handles internal spacing for markdown-rendered content -->
+            <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
+            
+            <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
+            <!-- These specific ul elements for ingredient lists are now REMOVED as the markdown handles it -->
+            <!-- The sections below are kept as hidden divs for consistency with previous structure, but their inner HTML is no longer populated by JS -->
+            <div id="fda-substances-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
+                <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
+            </div>
+            <div id="common-ingredients-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
+                <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
+            </div>
+            <div id="unidentified-ingredients-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
+                <ul id="unidentified-ingredients" class="list-disc list-inside text-gray-600"></ul>
             </div>
 
-            <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
-
-            <!-- Product details section with fade-in transition -->
-            <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
-                <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
-                <div class="text-left space-y-2">
-                    <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
-                    <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
-                    <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
-                    <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
-                    <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
-                </div>
-                <!-- The prose class handles internal spacing for markdown-rendered content -->
-                <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
-                
-                <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
-                <!-- The backend's data_report_markdown should now contain the structured categories directly,
-                     so these specific ul elements might not be strictly needed for display if markdown is rich.
-                     However, they are kept for consistency with the JS logic that *could* populate them. -->
-                <div id="fda-substances-section" class="mt-4 hidden">
-                    <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
-                    <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
-                </div>
-                <div id="common-ingredients-section" class="mt-4 hidden">
-                    <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
-                    <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
-                </div>
-                <div id="unidentified-ingredients-section" class="mt-4 hidden">
-                    <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
-                    <ul id="unidentified-ingredients" class="list-disc list-inside text-gray-600"></ul>
-                </div>
-
-            </div>
         </div>
 
         <!-- Message Modal -->
@@ -93,7 +91,8 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
 
-            // Ingredient list elements (if populated separately from markdown)
+            // Ingredient list elements (these will no longer be populated by JS directly, markdown handles it)
+            // Kept for element existence but their .innerHTML clearing logic is removed for simplicity
             const fdaSubstancesList = document.getElementById('fda-substances');
             const commonIngredientsList = document.getElementById('common-ingredients');
             const unidentifiedIngredientsList = document.getElementById('unidentified-ingredients');
@@ -119,7 +118,6 @@
             modalOkButton.addEventListener('click', hideModal);
 
             scanButton.addEventListener('click', async () => {
-                // ADD THIS LINE:
                 console.log("Scan Product button clicked!"); 
 
                 const gtin = gtinInput.value.trim();
@@ -140,11 +138,12 @@
                 displayNovaDescription.textContent = 'N/A';
                 dataReportMarkdown.innerHTML = ''; // Clear markdown content
 
-                // Clear ingredient lists and hide their sections
-                fdaSubstancesList.innerHTML = '';
+                // Clear ingredient lists and hide their sections (these are now largely redundant for display)
+                // The markdown report is now the primary source of categorized ingredient display
+                fdaSubstancesList.innerHTML = ''; // Still good to clear if they were ever populated
                 commonIngredientsList.innerHTML = '';
                 unidentifiedIngredientsList.innerHTML = '';
-                fdaSubstancesSection.classList.add('hidden');
+                fdaSubstancesSection.classList.add('hidden'); // Ensure sections are hidden by default
                 commonIngredientsSection.classList.add('hidden');
                 unidentifiedIngredientsSection.classList.add('hidden');
 
@@ -177,31 +176,10 @@
                             dataReportMarkdown.innerHTML = '<p class="text-gray-500">No detailed report available.</p>';
                         }
 
-                        // Populate ingredient lists if data is available
-                        if (data.fda_substances && data.fda_substances.length > 0) {
-                            data.fda_substances.forEach(item => {
-                                const li = document.createElement('li');
-                                li.textContent = item;
-                                fdaSubstancesList.appendChild(li);
-                            });
-                            fdaSubstancesSection.classList.remove('hidden');
-                        }
-                        if (data.common_ingredients && data.common_ingredients.length > 0) {
-                            data.common_ingredients.forEach(item => {
-                                const li = document.createElement('li');
-                                li.textContent = item;
-                                commonIngredientsList.appendChild(li);
-                            });
-                            commonIngredientsSection.classList.remove('hidden');
-                        }
-                        if (data.unidentified_ingredients && data.unidentified_ingredients.length > 0) {
-                            data.unidentified_ingredients.forEach(item => {
-                                const li = document.createElement('li');
-                                li.textContent = item;
-                                unidentifiedIngredientsList.appendChild(li);
-                            });
-                            unidentifiedIngredientsSection.classList.remove('hidden');
-                        }
+                        // REMOVED: Logic to populate fdaSubstancesList, commonIngredientsList, unidentifiedIngredientsList
+                        // The markdown report now handles the display of these categorized lists.
+                        // The sections (fda-substances-section, etc.) are kept as hidden divs in HTML,
+                        // but their content is no longer directly manipulated by this JS.
 
 
                         // Show product details with fade-in transition
@@ -229,4 +207,3 @@
         </script>
     </body>
     </html>
-    
