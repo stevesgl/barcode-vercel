@@ -1,221 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Grocery Product Scanner</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <style>
-    .modal {
-      display: none;
-      position: fixed;
-      z-index: 1000;
-      left: 0;
-      top: 0;
-      width: 100%;
-      height: 100%;
-      overflow: auto;
-      background-color: rgba(0,0,0,0.4);
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-content {
-      background-color: #fefefe;
-      margin: auto;
-      padding: 20px;
-      border: 1px solid #888;
-      width: 80%;
-      max-width: 500px;
-      border-radius: 8px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      position: relative;
-      text-align: center;
-    }
-    .close-button {
-      color: #aaa;
-      position: absolute;
-      top: 10px;
-      right: 15px;
-      font-size: 28px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .close-button:hover,
-    .close-button:focus {
-      color: black;
-    }
-  </style>
-</head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
-  <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center">
-    <h1 class="text-3xl font-bold mb-6 text-gray-800">Grocery Product Scanner</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grocery Product Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  </head>
+  <body class="bg-gray-100 font-sans leading-normal tracking-normal">
+    <div class="flex justify-center items-center h-screen">
+      <div class="bg-white p-8 rounded shadow-md w-full max-w-md">
+        <h1 class="text-2xl font-bold mb-4 text-center">Grocery Product Scanner</h1>
+        <p class="text-sm text-gray-500 mb-4 text-center">
+          Scan a Product Barcode (GTIN)
+        </p>
+        <input
+          id="gtin-input"
+          type="text"
+          placeholder="e.g., 071998000051"
+          class="w-full p-2 border border-gray-300 rounded mb-4"
+        />
+        <button
+          onclick="lookupProduct()"
+          class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+        >
+          Scan Product
+        </button>
 
-    <div class="mb-4">
-      <label for="gtinInput" class="block text-gray-700 text-sm font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
-      <input type="text" id="gtinInput" placeholder="e.g., 071998000051" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-    </div>
+        <div id="result" class="mt-6 hidden">
+          <h2 class="text-xl font-semibold mb-2">Product Details</h2>
+          <p><strong>GTIN:</strong> <span id="gtin"></span></p>
+          <p><strong>Description:</strong> <span id="description"></span></p>
 
-    <button id="scanButton" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline w-full">
-      Scan Product
-    </button>
+          <h2 class="text-xl font-semibold mt-4 mb-2">Summary</h2>
+          <p><strong>Data Score:</strong> <span id="data-score"></span></p>
+          <p><strong>NOVA Estimate:</strong> <span id="nova-estimate"></span></p>
 
-    <p id="placeholderText" class="text-gray-500 mt-4">Enter a barcode to begin...</p>
+          <h2 class="text-xl font-semibold mt-4 mb-2">FDA-Regulated Substances</h2>
+          <ul id="fda-substances" class="list-disc list-inside"></ul>
 
-    <div id="loadingIndicator" class="hidden mt-4 text-blue-500 font-semibold">
-      Loading...
-    </div>
+          <h2 class="text-xl font-semibold mt-4 mb-2">Common Ingredients</h2>
+          <ul id="common-ingredients" class="list-disc list-inside"></ul>
 
-    <!-- Product Report Container -->
-    <div id="productDetails" class="hidden transition-opacity duration-700 ease-in-out opacity-0 mt-8 space-y-6">
-      <!-- Product Info -->
-      <div class="prose">
-        <h2 class="text-xl font-semibold">Product Details</h2>
-        <p><strong>GTIN:</strong> <span id="productGTIN"></span></p>
-        <p><strong>Description:</strong> <span id="productDescription"></span></p>
-      </div>
+          <h2 class="text-xl font-semibold mt-4 mb-2">Unidentified Ingredients</h2>
+          <ul id="unidentified-ingredients" class="list-disc list-inside"></ul>
+        </div>
 
-      <!-- Summary -->
-      <div class="prose">
-        <h2 class="text-xl font-semibold">Summary</h2>
-        <p><strong>Data Score:</strong> <span id="dataScore"></span></p>
-        <p><strong>NOVA Estimate:</strong> <span id="novaScore"></span></p>
-      </div>
-
-      <!-- FDA Additives -->
-      <div class="prose">
-        <h2 class="text-xl font-semibold">FDA-Regulated Substances</h2>
-        <ul id="fdaList" class="list-disc pl-6"></ul>
-      </div>
-
-      <!-- Common Ingredients -->
-      <div class="prose">
-        <h2 class="text-xl font-semibold">Common Ingredients</h2>
-        <ul id="commonList" class="list-disc pl-6"></ul>
-      </div>
-
-      <!-- Unidentified -->
-      <div class="prose">
-        <h2 class="text-xl font-semibold">Unidentified Ingredients</h2>
-        <ul id="unidentifiedList" class="list-disc pl-6"></ul>
+        <div id="trust-report" class="mt-6 hidden prose prose-sm max-w-none"></div>
       </div>
     </div>
-  </div>
 
-  <!-- Modal -->
-  <div id="messageModal" class="modal">
-    <div class="modal-content">
-      <span class="close-button" id="closeModalButton">&times;</span>
-      <h2 id="modalTitle" class="text-xl font-bold mb-4"></h2>
-      <p id="modalMessage" class="text-gray-700"></p>
-    </div>
-  </div>
-<!-- Trigger redeploy -->
+    <script>
+      async function lookupProduct() {
+        const gtin = document.getElementById("gtin-input").value;
+        if (!gtin) return;
 
-  <script>
-    const API_BASE_URL = 'https://smart-grocery-backend-jxku.onrender.com';
-
-    const gtinInput = document.getElementById('gtinInput');
-    const scanButton = document.getElementById('scanButton');
-    const loadingIndicator = document.getElementById('loadingIndicator');
-    const productDetailsDiv = document.getElementById('productDetails');
-    const productGTIN = document.getElementById('productGTIN');
-    const productDescription = document.getElementById('productDescription');
-    const dataScore = document.getElementById('dataScore');
-    const novaScore = document.getElementById('novaScore');
-    const fdaList = document.getElementById('fdaList');
-    const commonList = document.getElementById('commonList');
-    const unidentifiedList = document.getElementById('unidentifiedList');
-    const placeholderText = document.getElementById('placeholderText');
-
-    const messageModal = document.getElementById('messageModal');
-    const closeModalButton = document.getElementById('closeModalButton');
-    const modalTitle = document.getElementById('modalTitle');
-    const modalMessage = document.getElementById('modalMessage');
-
-    function showModal(title, message) {
-      modalTitle.textContent = title;
-      modalMessage.textContent = message;
-      messageModal.style.display = 'flex';
-    }
-
-    function hideModal() {
-      messageModal.style.display = 'none';
-    }
-
-    closeModalButton.addEventListener('click', hideModal);
-    window.addEventListener('click', (event) => {
-      if (event.target == messageModal) hideModal();
-    });
-
-    scanButton.addEventListener('click', async () => {
-      const gtin = gtinInput.value.trim();
-
-      productDetailsDiv.classList.add('hidden');
-      productDetailsDiv.classList.remove('opacity-100');
-      placeholderText.classList.add('hidden');
-
-      productGTIN.textContent = '';
-      productDescription.textContent = '';
-      dataScore.textContent = '';
-      novaScore.textContent = '';
-      fdaList.innerHTML = '';
-      commonList.innerHTML = '';
-      unidentifiedList.innerHTML = '';
-      hideModal();
-
-      if (!gtin) {
-        showModal('Input Error', 'Please enter a GTIN.');
-        return;
-      }
-
-      loadingIndicator.classList.remove('hidden');
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/gtin-lookup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gtin })
+        const response = await fetch("https://barcode-backend.onrender.com/api/gtin-lookup", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ gtin }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          productGTIN.textContent = data.gtin || 'N/A';
-          productDescription.textContent = data.description || 'N/A';
-          dataScore.textContent = data.data_score || 'N/A';
-          novaScore.textContent = data.nova_score || 'N/A';
-
-          (data.fda_substances || []).forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item;
-            fdaList.appendChild(li);
-          });
-
-          (data.common_ingredients || []).forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item;
-            commonList.appendChild(li);
-          });
-
-          (data.unidentified_ingredients || []).forEach(item => {
-            const li = document.createElement('li');
-            li.textContent = item;
-            unidentifiedList.appendChild(li);
-          });
-
-          productDetailsDiv.classList.remove('hidden');
-          setTimeout(() => productDetailsDiv.classList.add('opacity-100'), 50);
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          showModal('Error', errorData.error || `API Error: ${response.status}`);
+        if (!response.ok) {
+          alert("Product lookup failed.");
+          return;
         }
-      } catch (error) {
-        showModal('Network Error', 'Could not connect to the backend server.');
-      } finally {
-        loadingIndicator.classList.add('hidden');
+
+        const data = await response.json();
+
+        document.getElementById("result").classList.remove("hidden");
+        document.getElementById("gtin").textContent = data.gtin || "";
+        document.getElementById("description").textContent = data.description || "";
+        document.getElementById("data-score").textContent =
+          data.data_score !== undefined ? data.data_score : "N/A";
+        document.getElementById("nova-estimate").textContent =
+          data.nova_score !== undefined ? data.nova_score : "N/A";
+
+        // Clear previous lists
+        ["fda-substances", "common-ingredients", "unidentified-ingredients"].forEach((id) =>
+          (document.getElementById(id).innerHTML = "")
+        );
+
+        // Render Trust Report (Markdown)
+        if (data.data_report_markdown) {
+          const reportContainer = document.getElementById("trust-report");
+          reportContainer.innerHTML = marked.parse(data.data_report_markdown);
+          reportContainer.classList.remove("hidden");
+        }
       }
-    });
-  </script>
-</body>
+    </script>
+  </body>
 </html>
