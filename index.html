@@ -55,39 +55,69 @@
         const gtin = document.getElementById("gtin-input").value;
         if (!gtin) return;
 
-        const response = await fetch("https://barcode-backend.onrender.com/api/gtin-lookup", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ gtin }),
-        });
+        try {
+          const response = await fetch("https://barcode-backend.onrender.com/api/gtin-lookup", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ gtin }),
+          });
 
-        if (!response.ok) {
-          alert("Product lookup failed.");
-          return;
-        }
+          if (!response.ok) {
+            alert("Product lookup failed.");
+            return;
+          }
 
-        const data = await response.json();
+          const data = await response.json();
+          console.log("✅ Full response:", data); // DEBUG
 
-        document.getElementById("result").classList.remove("hidden");
-        document.getElementById("gtin").textContent = data.gtin || "";
-        document.getElementById("description").textContent = data.description || "";
-        document.getElementById("data-score").textContent =
-          data.data_score !== undefined ? data.data_score : "N/A";
-        document.getElementById("nova-estimate").textContent =
-          data.nova_score !== undefined ? data.nova_score : "N/A";
+          document.getElementById("result").classList.remove("hidden");
+          document.getElementById("gtin").textContent = data.gtin || "";
+          document.getElementById("description").textContent = data.description || "";
+          document.getElementById("data-score").textContent =
+            data.data_score !== undefined ? data.data_score : "N/A";
+          document.getElementById("nova-estimate").textContent =
+            data.nova_score !== undefined ? data.nova_score : "NOVA N/A";
 
-        // Clear previous lists
-        ["fda-substances", "common-ingredients", "unidentified-ingredients"].forEach((id) =>
-          (document.getElementById(id).innerHTML = "")
-        );
+          // Clear previous lists
+          ["fda-substances", "common-ingredients", "unidentified-ingredients"].forEach((id) =>
+            (document.getElementById(id).innerHTML = "")
+          );
 
-        // Render Trust Report (Markdown)
-        if (data.data_report_markdown) {
-          const reportContainer = document.getElementById("trust-report");
-          reportContainer.innerHTML = marked.parse(data.data_report_markdown);
-          reportContainer.classList.remove("hidden");
+          // Optional: parse Markdown report
+          if (data.data_report_markdown) {
+            const reportContainer = document.getElementById("trust-report");
+            reportContainer.innerHTML = marked.parse(data.data_report_markdown);
+            reportContainer.classList.remove("hidden");
+          }
+
+          // Populate breakdown lists
+          const fdaList = document.getElementById("fda-substances");
+          const commonList = document.getElementById("common-ingredients");
+          const unknownList = document.getElementById("unidentified-ingredients");
+
+          (data.fda_substances || []).forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            fdaList.appendChild(li);
+          });
+
+          (data.common_ingredients || []).forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            commonList.appendChild(li);
+          });
+
+          (data.unidentified_ingredients || []).forEach(item => {
+            const li = document.createElement("li");
+            li.textContent = item;
+            unknownList.appendChild(li);
+          });
+
+        } catch (error) {
+          console.error("❌ Lookup failed:", error);
+          alert("There was a problem looking up the product.");
         }
       }
     </script>
