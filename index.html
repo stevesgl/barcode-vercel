@@ -15,6 +15,29 @@
         .modal {
             z-index: 1000;
         }
+        /* Add a smooth transition for product details visibility */
+        #productDetails {
+            transition: opacity 0.5s ease-in-out;
+        }
+        /* Style for markdown-rendered content to ensure proper spacing */
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+            margin-top: 1.5em; /* Space above headings */
+            margin-bottom: 0.5em; /* Space below headings */
+        }
+        .prose p {
+            margin-bottom: 1em; /* Space below paragraphs */
+        }
+        .prose ul {
+            margin-top: 0.5em;
+            margin-bottom: 1em;
+            padding-left: 1.5em; /* Indent list items */
+        }
+        .prose li {
+            margin-bottom: 0.5em; /* Space between list items */
+        }
+        .prose strong {
+            font-weight: 700; /* Ensure bold text is strong */
+        }
     </style>
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
@@ -25,185 +48,118 @@
         <div class="mb-6 space-y-4">
             <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
             <!-- Input field with updated placeholder text -->
-            <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
-            <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+            <input type="text" id="gtinInput" placeholder="e.g., 071998000051"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800">
+            <button id="scanButton"
+                    class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                Scan Product
+            </button>
         </div>
 
-        <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="hidden flex items-center justify-center space-x-2 text-blue-600">
+            <svg class="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.000 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>Loading...</span>
+        </div>
 
-        <!-- Product details section with fade-in transition -->
-        <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
+        <!-- Product Details Section - Initially hidden and fades in -->
+        <div id="productDetails" class="hidden opacity-0 text-left bg-gray-50 p-6 rounded-lg shadow-inner mt-6">
             <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
-            <div class="text-left space-y-2">
-                <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
-                <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
-            </div>
             <!-- The prose class handles internal spacing for markdown-rendered content -->
             <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
-            
-            <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
-            <!-- These specific ul elements for ingredient lists are now REMOVED as the markdown handles it -->
-            <!-- The sections below are kept as hidden divs for consistency with previous structure, but their inner HTML is no longer populated by JS -->
-            <div id="fda-substances-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
-                <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
-            </div>
-            <div id="common-ingredients-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
-                <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
-            </div>
-            <div id="unidentified-ingredients-section" class="mt-4 hidden">
-                <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
-                <ul id="unidentified-ingredients" class="list-disc list-inside text-gray-600"></ul>
-            </div>
-
         </div>
 
-        <!-- Message Modal -->
-        <div id="messageModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
-            <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center relative">
-                <button id="closeModal" class="absolute top-3 right-3 text-gray-500 hover:text-gray-700 text-2xl font-bold">&times;</button>
-                <h3 id="modalTitle" class="text-xl font-semibold text-gray-800 mb-4"></h3>
+        <!-- Modal Structure -->
+        <div id="myModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-75 hidden flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg p-6 shadow-xl max-w-sm w-full text-center">
+                <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-4"></h3>
                 <p id="modalMessage" class="text-gray-600 mb-6"></p>
-                <button id="modalOkButton" class="bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">OK</button>
+                <button id="closeModal"
+                        class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-200 ease-in-out">
+                    Close
+                </button>
             </div>
         </div>
 
-        <script>
-            const gtinInput = document.getElementById('gtinInput');
-            const scanButton = document.getElementById('scanButton');
-            const loadingIndicator = document.getElementById('loadingIndicator');
-            const productDetailsDiv = document.getElementById('productDetails');
-            const displayGtin = document.getElementById('displayGtin');
-            const displayDescription = document.getElementById('displayDescription');
-            const displayIngredients = document.getElementById('displayIngredients');
-            const displayNovaScore = document.getElementById('displayNovaScore');
-            const displayNovaDescription = document.getElementById('displayNovaDescription');
-            const dataReportMarkdown = document.getElementById('dataReportMarkdown');
+    </div>
 
-            // Modal elements
-            const messageModal = document.getElementById('messageModal');
-            const closeModalButton = document.getElementById('closeModal');
-            const modalOkButton = document.getElementById('modalOkButton');
-            const modalTitle = document.getElementById('modalTitle');
-            const modalMessage = document.getElementById('modalMessage');
+    <script>
+        const API_BASE_URL = 'https://smart-grocery-backend.onrender.com'; // Your Render backend URL
+        const gtinInput = document.getElementById('gtinInput');
+        const scanButton = document.getElementById('scanButton');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const productDetailsDiv = document.getElementById('productDetails');
+        const dataReportMarkdown = document.getElementById('dataReportMarkdown');
 
-            // Ingredient list elements (these will no longer be populated by JS directly, markdown handles it)
-            // Kept for element existence but their .innerHTML clearing logic is removed for simplicity
-            const fdaSubstancesList = document.getElementById('fda-substances');
-            const commonIngredientsList = document.getElementById('common-ingredients');
-            const unidentifiedIngredientsList = document.getElementById('unidentified-ingredients');
-            const fdaSubstancesSection = document.getElementById('fda-substances-section');
-            const commonIngredientsSection = document.getElementById('common-ingredients-section');
-            const unidentifiedIngredientsSection = document.getElementById('unidentified-ingredients-section');
+        // Modal elements
+        const myModal = document.getElementById('myModal');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalMessage = document.getElementById('modalMessage');
+        const closeModalButton = document.getElementById('closeModal');
 
+        // Function to show the modal
+        function showModal(title, message) {
+            modalTitle.textContent = title;
+            modalMessage.textContent = message;
+            myModal.classList.remove('hidden');
+        }
 
-            // Show modal function
-            function showModal(title, message) {
-                modalTitle.textContent = title;
-                modalMessage.textContent = message;
-                messageModal.classList.remove('hidden');
+        // Function to hide the modal
+        closeModalButton.addEventListener('click', () => {
+            myModal.classList.add('hidden');
+        });
+
+        scanButton.addEventListener('click', async () => {
+            const gtin = gtinInput.value.trim();
+            if (!gtin) {
+                showModal('Input Error', 'Please enter a GTIN to scan.');
+                return;
             }
 
-            // Hide modal function
-            function hideModal() {
-                messageModal.classList.add('hidden');
-            }
+            // Hide previous results and show loading indicator
+            productDetailsDiv.classList.add('hidden', 'opacity-0');
+            loadingIndicator.classList.remove('hidden');
 
-            // Event listeners for modal buttons
-            closeModalButton.addEventListener('click', hideModal);
-            modalOkButton.addEventListener('click', hideModal);
+            try {
+                const response = await fetch(`${API_BASE_URL}/gtin-lookup`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ gtin: gtin })
+                });
 
-            scanButton.addEventListener('click', async () => {
-                console.log("Scan Product button clicked!"); 
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Render the markdown report
+                    dataReportMarkdown.innerHTML = marked.parse(data.data_report_markdown);
 
-                const gtin = gtinInput.value.trim();
-                if (!gtin) {
-                    showModal('Input Error', 'Please enter a GTIN.');
-                    return;
-                }
+                    // Show product details with fade-in transition
+                    productDetailsDiv.classList.remove('hidden');
+                    // Force reflow/repaint to ensure CSS transition applies correctly
+                    void productDetailsDiv.offsetWidth;
+                    productDetailsDiv.classList.remove('opacity-0');
+                    productDetailsDiv.classList.add('opacity-100');
 
-                loadingIndicator.classList.remove('hidden');
-                // Ensure productDetailsDiv is hidden and opaque before new scan
-                productDetailsDiv.classList.add('opacity-0', 'hidden');
-
-                // Clear previous results before new scan
-                displayGtin.textContent = 'N/A';
-                displayDescription.textContent = 'N/A';
-                displayIngredients.textContent = 'N/A';
-                displayNovaScore.textContent = 'N/A';
-                displayNovaDescription.textContent = 'N/A';
-                dataReportMarkdown.innerHTML = ''; // Clear markdown content
-
-                // Clear ingredient lists and hide their sections (these are now largely redundant for display)
-                // The markdown report is now the primary source of categorized ingredient display
-                fdaSubstancesList.innerHTML = ''; // Still good to clear if they were ever populated
-                commonIngredientsList.innerHTML = '';
-                unidentifiedIngredientsList.innerHTML = '';
-                fdaSubstancesSection.classList.add('hidden'); // Ensure sections are hidden by default
-                commonIngredientsSection.classList.add('hidden');
-                unidentifiedIngredientsSection.classList.add('hidden');
-
-
-                try {
-                    // Ensure the API_BASE_URL is correct for your Render backend
-                    const API_BASE_URL = 'https://smart-grocery-backend-jxku.onrender.com'; // Replace with your actual Render backend URL
-                    const response = await fetch(`${API_BASE_URL}/gtin-lookup`, { // Use POST and send JSON body
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ gtin: gtin })
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log('Frontend received and parsed data:', data);
-
-                        displayGtin.textContent = data.gtin || 'N/A';
-                        displayDescription.textContent = data.description || 'N/A';
-                        displayIngredients.textContent = data.ingredients || 'N/A';
-                        displayNovaScore.textContent = data.nova_score || 'N/A';
-                        displayNovaDescription.textContent = data.nova_description || 'N/A';
-
-                        // Render markdown content
-                        if (data.data_report_markdown) {
-                            dataReportMarkdown.innerHTML = marked.parse(data.data_report_markdown);
-                        } else {
-                            dataReportMarkdown.innerHTML = '<p class="text-gray-500">No detailed report available.</p>';
-                        }
-
-                        // REMOVED: Logic to populate fdaSubstancesList, commonIngredientsList, unidentifiedIngredientsList
-                        // The markdown report now handles the display of these categorized lists.
-                        // The sections (fda-substances-section, etc.) are kept as hidden divs in HTML,
-                        // but their content is no longer directly manipulated by this JS.
-
-
-                        // Show product details with fade-in transition
-                        productDetailsDiv.classList.remove('hidden');
-                        // Force reflow/repaint to ensure CSS transition applies correctly
-                        void productDetailsDiv.offsetWidth;
-                        productDetailsDiv.classList.remove('opacity-0');
-                        productDetailsDiv.classList.add('opacity-100');
-
-                    } else {
-                        const errorData = await response.json();
-                        showModal('API Error', errorData.error || 'An unknown error occurred.');
-                        // Ensure product details remain hidden on error
-                        productDetailsDiv.classList.add('hidden', 'opacity-0');
-                    }
-                } catch (error) {
-                    console.error('Fetch error:', error);
-                    showModal('Network Error', 'Could not connect to the backend server. Please check your internet connection or the API URL.');
+                } else {
+                    const errorData = await response.json();
+                    showModal('API Error', errorData.error || 'An unknown error occurred.');
                     // Ensure product details remain hidden on error
                     productDetailsDiv.classList.add('hidden', 'opacity-0');
-                } finally {
-                    loadingIndicator.classList.add('hidden');
                 }
-            });
-        </script>
-    </body>
-    </html>
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showModal('Network Error', 'Could not connect to the backend server. Please check your internet connection or the API URL.');
+                // Ensure product details remain hidden on error
+                productDetailsDiv.classList.add('hidden', 'opacity-0');
+            } finally {
+                loadingIndicator.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
