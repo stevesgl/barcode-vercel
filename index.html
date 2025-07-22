@@ -1,257 +1,61 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Product Lookup</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery Product Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
+        /* Optional: Add custom styles here if Tailwind alone isn't enough */
         body {
             font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            background-color: #f0f2f5;
-            margin: 0;
-            padding: 20px;
-            box-sizing: border-box;
         }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #fff;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            text-align: center;
-            font-size: 1.1em;
-            color: #333;
-            min-height: 50px; /* Ensure space for results */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
-        #result strong {
-            color: #28a745;
-        }
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #4CAF50;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            margin-top: 10px;
-            display: none; /* Hidden by default */
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        .error-message {
-            color: #dc3545;
-            font-weight: bold;
-        }
-        .success-message {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        /* Styles for manual input */
-        #manual-input-container {
-            width: 100%;
-            max-width: 500px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            padding: 15px;
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        }
-        #gtinInput {
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
-            width: calc(100% - 22px); /* Adjust for padding and border */
-        }
-        #lookupButton {
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 50px; /* Rounded corners for button */
-            cursor: pointer;
-            font-size: 1em;
-            transition: background-color 0.3s ease, transform 0.2s ease;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        #lookupButton:hover {
-            background-color: #0056b3;
-            transform: translateY(-2px);
-        }
-        #lookupButton:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
-        .instruction-text {
-            font-size: 0.9em;
-            color: #555;
-            text-align: center;
-            margin-top: -5px; /* Adjust spacing */
-            margin-bottom: 10px;
-        }
-        /* Styles for the Trust Report display */
-        #trustReportContainer {
-            margin-top: 20px;
-            padding: 15px;
-            border: 1px solid #cce5ff; /* Light blue border */
-            border-radius: 8px;
-            background-color: #e6f7ff; /* Light blue background */
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            text-align: left; /* Align markdown content to left */
-            color: #333;
-            display: none; /* Hidden by default */
-        }
-        #trustReportContainer h2, #trustReportContainer h3 {
-            color: #0056b3; /* Darker blue for headings */
-            margin-top: 10px;
-            margin-bottom: 5px;
-        }
-        #trustReportContainer ul {
-            list-style-type: disc;
-            padding-left: 20px;
-            margin-top: 5px;
-        }
-        #trustReportContainer ol { /* Added style for ordered lists */
-            list-style-type: decimal;
-            padding-left: 20px;
-            margin-top: 5px;
-        }
-        #trustReportContainer li {
-            margin-bottom: 5px;
-        }
-        #trustReportContainer strong {
-            color: #004085; /* Even darker blue for strong text */
-        }
-        #trustReportContainer em {
-            font-style: italic;
-            color: #666;
-        }
-        #trustReportContainer hr { /* Style for horizontal rule */
-            border-top: 1px solid #a7d9ff;
-            margin: 15px 0;
+        /* Ensure the modal is always on top */
+        .modal {
+            z-index: 1000;
         }
     </style>
 </head>
-<body>
-    <h1>Product Lookup</h1>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <!-- Main container with overall vertical spacing -->
+    <div class="bg-white p-8 rounded-lg shadow-md w-full max-w-md text-center space-y-6">
+        <h1 class="text-3xl font-bold text-gray-800 mb-4">Grocery Product Scanner</h1>
 
-    <div id="manual-input-container">
-        <h2>Enter Barcode (GTIN) Manually</h2>
-        <input type="text" id="gtinInput" placeholder="Enter the 12 or 13-digit barcode number (e.g., 049000000426)">
-        <small class="instruction-text">Include all numbers, even those at the edges of the barcode.</small>
-        <button id="lookupButton">Lookup Product</button>
-    </div>
+        <div class="mb-6 space-y-4">
+            <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-2">Scan a Product Barcode (GTIN)</label>
+            <!-- Input field with updated placeholder text -->
+            <input type="text" id="gtinInput" placeholder="Enter GTIN to begin..." class="w-full p-3 border border-gray-300 rounded-lg text-lg focus:outline-none focus:ring-2 focus:ring-blue-500" value="">
+            <button id="scanButton" class="w-full bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Scan Product</button>
+        </div>
 
-    <div id="result">
-        <div class="loading-spinner" id="loadingSpinner"></div>
-        <span id="resultText">Enter a GTIN to get product info...</span>
-    </div>
+        <div id="loadingIndicator" class="hidden text-blue-600 font-semibold">Scanning...</div>
 
-    <!-- New container for the Trust Report -->
-    <div id="trustReportContainer"></div>
-
-    <!-- Include Marked.js for Markdown rendering -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-    <script type="text/javascript">
-        // IMPORTANT: This URL now points to your live Render backend service!
-        const API_ENDPOINT = "https://smart-grocery-backend-jxku.onrender.com/api/gtin-lookup"; 
-
-        const resultText = document.getElementById('resultText');
-        const loadingSpinner = document.getElementById('loadingSpinner');
-        const gtinInput = document.getElementById('gtinInput');
-        const lookupButton = document.getElementById('lookupButton');
-        const trustReportContainer = document.getElementById('trustReportContainer'); // Get the new container
-
-        // Function to handle successful barcode scan OR manual lookup
-        async function processGtin(gtin) {
-            resultText.innerHTML = 'Processing GTIN...<br>Thanks for keeping them honest!'; // Added new line here
-            loadingSpinner.style.display = 'block';
-            trustReportContainer.style.display = 'none'; // Hide previous report
-
-            // Send the GTIN to your Render API Endpoint
-            try {
-                const response = await fetch(API_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ gtin: gtin })
-                });
-
-                loadingSpinner.style.display = 'none';
-                if (!response.ok) {
-                    const text = await response.text();
-                    try {
-                        const errorData = JSON.parse(text);
-                        throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-                    } catch (e) {
-                        // This catch block handles the "Unexpected token 'T'" error
-                        throw new Error(`HTTP error! Status: ${response.status}. Response: ${text.substring(0, 100)}...`);
-                    }
-                }
-                const data = await response.json();
-                
-                console.log('API Response:', data);
-                let resultMessage = `GTIN: <strong>${data.gtin}</strong><br>`;
-                if (data.status === "found_in_cache") {
-                    resultMessage += `<span class="success-message">Found in Cache!</span><br>`;
-                } else if (data.status === "pulled_from_usda_and_cached") {
-                    resultMessage += `<span class="success-message">Pulled from USDA & Cached!</span><br>`;
-                } else if (data.status === "not_found") {
-                    resultMessage += `<span class="error-message">Product Not Found!</span><br>`;
-                }
-                // FIX: Access description and ingredients directly from 'data' object
-                resultMessage += `Description: ${data.description || 'N/A'}<br>`; 
-                resultMessage += `Ingredients: ${data.ingredients || 'N/A'}`;
-                
-                document.getElementById('resultText').innerHTML = resultMessage;
-
-                // Display the Trust Report Markdown using marked.js
-                if (data.data_report_markdown) { // Changed from trust_report_markdown to data_report_markdown
-                    trustReportContainer.innerHTML = marked.parse(data.data_report_markdown);
-                    trustReportContainer.style.display = 'block'; // Show the container
-                } else {
-                    trustReportContainer.style.display = 'none'; // Ensure it's hidden if no report
-                }
-
-            } catch (error) {
-                loadingSpinner.style.display = 'none';
-                console.error('Error:', error);
-                document.getElementById('resultText').innerHTML = `<span class="error-message">Error: ${error.message || 'Unknown error occurred.'}</span>`;
-                trustReportContainer.style.display = 'none'; // Hide report on error
-            }
-        }
-
-        // Event listener for manual lookup button
-        lookupButton.addEventListener('click', () => {
-            const gtin = gtinInput.value.trim();
-            if (gtin) {
-                processGtin(gtin);
-            } else {
-                resultText.innerHTML = '<span class="error-message">Please enter a GTIN.</span>';
-                trustReportContainer.style.display = 'none'; // Hide report if input is empty
-            }
-        });
-    </script>
-</body>
-</html>
+        <!-- Product details section with fade-in transition -->
+        <div id="productDetails" class="bg-white p-6 rounded-xl shadow-lg opacity-0 transition-opacity duration-500 hidden">
+            <h2 class="text-2xl font-semibold text-gray-800 mb-4">Product Information</h2>
+            <div class="text-left space-y-2">
+                <p><strong class="text-gray-700">GTIN:</strong> <span id="displayGtin" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">Description:</strong> <span id="displayDescription" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">Ingredients:</strong> <span id="displayIngredients" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">NOVA Score:</strong> <span id="displayNovaScore" class="text-gray-600">N/A</span></p>
+                <p><strong class="text-gray-700">NOVA Description:</strong> <span id="displayNovaDescription" class="text-gray-600">N/A</span></p>
+            </div>
+            <!-- The prose class handles internal spacing for markdown-rendered content -->
+            <div id="dataReportMarkdown" class="prose max-w-none mt-6 text-left"></div>
+            
+            <!-- These sections will be populated by the backend's ingredient categorization via markdown -->
+            <!-- The backend's data_report_markdown should now contain the structured categories directly,
+                 so these specific ul elements might not be strictly needed for display if markdown is rich.
+                 However, they are kept for consistency with the JS logic that *could* populate them. -->
+            <div id="fda-substances-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">FDA Substances</h3>
+                <ul id="fda-substances" class="list-disc list-inside text-gray-600"></ul>
+            </div>
+            <div id="common-ingredients-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">Common Ingredients</h3>
+                <ul id="common-ingredients" class="list-disc list-inside text-gray-600"></ul>
+            </div>
+            <div id="unidentified-ingredients-section" class="mt-4 hidden">
+                <h3 class="text-xl font-semibold text-gray-800">Unidentified Ingredients</h3>
+                <ul id="unidentifi
