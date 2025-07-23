@@ -124,7 +124,7 @@
             loadingIndicator.classList.remove('hidden');
 
             try {
-                const response = await fetch(`${API_BASE_URL}/gtin-lookup`, {
+                const response = await fetch(`${API_BASE_URL}/gtin_lookup`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
