@@ -136,7 +136,62 @@
                     const data = await response.json();
                     
                     // Render the markdown report
-                    dataReportMarkdown.innerHTML = marked.parse(data.data_report_markdown);
+                    const reportHtml = renderStructuredReport(data);
+                    dataReportMarkdown.innerHTML = reportHtml;
+
+function renderStructuredReport(data) {
+    const { fda_substances = [], common_substances = [], data_score, nova_score, total_ingredients, matched_ingredients } = data;
+
+    // Build FDA substance list
+    const fdaList = fda_substances.map(sub => `
+        <li>
+            <strong>${sub.name}</strong><br>
+            <span class="text-sm italic text-gray-600">Used for: ${sub.used_for || "—"}</span>
+        </li>
+    `).join("");
+
+    // Build common ingredient list
+    const commonList = common_substances.map(sub => `<li>${sub}</li>`).join("");
+
+    return `
+        <div class="space-y-8">
+
+            <!-- NOVA Badge -->
+            <div>
+                <div class="text-sm font-medium text-gray-700 mb-1">NOVA Score</div>
+                <div class="flex items-center">
+                    <span class="font-semibold text-gray-800 mr-3">NOVA ${nova_score}</span>
+                    ${renderNovaBadge(nova_score)}
+                </div>
+            </div>
+
+            <!-- FDA Substances -->
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">✅ ${fda_substances.length} FDA-Recognized Substances Detected</h2>
+                <p class="text-sm text-gray-600 mb-2">These are officially listed in the FDA Substances Database. Each includes its recognized technical purpose.</p>
+                <ul class="list-disc ml-5 space-y-2">${fdaList}</ul>
+            </div>
+
+            <!-- Common Substances -->
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">🌿 ${common_substances.length} Common Food Substance${common_substances.length === 1 ? "" : "s"} Identified</h2>
+                <p class="text-sm text-gray-600 mb-2">Naturally occurring substances that may not be labeled as additives. These may be complex phrases, misspellings, or require manual classification:</p>
+                <ul class="list-disc ml-5 space-y-1">${commonList}</ul>
+                <p class="text-xs text-gray-500 italic mt-2">We’re improving every day. The more you use it, the smarter it gets.</p>
+            </div>
+
+            <!-- Summary Scores -->
+            <div>
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">📊 Summary & Confidence Scores</h2>
+                <div class="text-sm text-gray-700">
+                    <p><strong>Data Score:</strong> ${data_score}% – Matched ${matched_ingredients} out of ${total_ingredients} listed ingredients.</p>
+                </div>
+            </div>
+
+        </div>
+    `;
+}
+
 
                     // Show product details with fade-in transition
                     productDetailsDiv.classList.remove('hidden');
@@ -160,6 +215,25 @@
                 loadingIndicator.classList.add('hidden');
             }
         });
+function renderNovaBadge(novaScore) {
+    const square = `<span class="inline-block w-4 h-4 rounded-sm mr-1"></span>`;
+    const colors = {
+        1: ["bg-green-500", "bg-gray-200", "bg-gray-200", "bg-gray-200"],
+        2: ["bg-blue-400", "bg-blue-400", "bg-gray-200", "bg-gray-200"],
+        3: ["bg-blue-600", "bg-blue-600", "bg-blue-600", "bg-gray-200"],
+        4: ["bg-red-500", "bg-red-500", "bg-red-500", "bg-red-500"]
+    };
+    const colorSet = colors[novaScore] || ["bg-gray-200", "bg-gray-200", "bg-gray-200", "bg-gray-200"];
+    const squares = colorSet.map(c => square.replace("rounded-sm", `${c} rounded-sm`)).join("");
+
+    return `
+        <div class="flex items-center mb-4">
+            <span class="font-semibold text-gray-700 mr-3">NOVA ${novaScore}:</span>
+            ${squares}
+        </div>
+    `;
+}
+
     </script>
 </body>
 </html>
