@@ -67,21 +67,7 @@
         }
 
         /* Styles for individual ingredient details dropdown */
-        details.ingredient-detail-toggle > summary {
-            cursor: pointer;
-            list-style: none; /* Hide default arrow */
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.25rem 0; /* Small padding within the list item */
-        }
-        details.ingredient-detail-toggle > summary::-webkit-details-marker,
-        details.ingredient-detail-toggle > summary::marker {
-            display: none;
-        }
-        details.ingredient-detail-toggle[open] > summary .arrow-icon {
-            transform: rotate(90deg);
-        }
+        /* Removed specific styles for details.ingredient-detail-toggle as it's being removed */
         .ingredient-details-content {
             padding-left: 1.5rem; /* Indent content */
             border-left: 1px solid #e5e7eb; /* Light border for visual grouping */
@@ -236,15 +222,13 @@
         });
 
         // Helper function to create ingredient details dropdown (for FDA substances)
+        // THIS FUNCTION IS NOW MODIFIED TO SIMPLY DISPLAY CONTENT, NOT USE <DETAILS>
         function createFdaIngredientDetail(ingredient) {
-            const details = document.createElement('details');
-            details.className = 'ingredient-detail-toggle';
+            const containerDiv = document.createElement('div');
+            containerDiv.className = 'py-1 text-gray-700 text-sm space-y-1'; // Simple container for each FDA ingredient
 
-            const summary = document.createElement('summary');
-            summary.className = 'flex items-center justify-between py-1'; // Adjusted padding
-            
             const nameAndBadges = document.createElement('div');
-            nameAndBadges.className = 'flex items-center flex-wrap'; // Allow badges to wrap if many
+            nameAndBadges.className = 'flex items-center flex-wrap';
             
             const ingredientNameSpan = document.createElement('span');
             ingredientNameSpan.className = 'ingredient-name font-medium text-gray-800';
@@ -261,50 +245,25 @@
                     nameAndBadges.appendChild(badge);
                 });
             }
-            summary.appendChild(nameAndBadges);
+            containerDiv.appendChild(nameAndBadges);
 
-            // Arrow icon for expand/collapse
-            const arrowIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            arrowIcon.setAttribute("class", "arrow-icon w-4 h-4 text-gray-400 transform transition-transform duration-200");
-            arrowIcon.setAttribute("viewBox", "0 0 20 20");
-            arrowIcon.setAttribute("fill", "currentColor");
-            arrowIcon.innerHTML = '<path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />';
-            summary.appendChild(arrowIcon);
-
-            details.appendChild(summary);
-
-            // Content for the expandable details
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'ingredient-details-content text-gray-700 text-sm space-y-1';
-
-            if (ingredient.canonical_name && ingredient.canonical_name !== ingredient.name) {
-                const canonicalNameP = document.createElement('p');
-                canonicalNameP.innerHTML = `<strong>Canonical Name:</strong> ${ingredient.canonical_name}`;
-                contentDiv.appendChild(canonicalNameP);
-            }
-            
+            // Display "Used for (Technical Effect)" directly
             if (ingredient.used_for_raw && ingredient.used_for_raw !== "N/A") {
                 const usedForP = document.createElement('p');
-                usedForP.innerHTML = `<strong>Technical Effect(s):</strong> ${ingredient.used_for_raw.replace(/<br\s*\/?>/gi, ', ')}`; // Replace <br> with comma for display
-                contentDiv.appendChild(usedForP);
+                usedForP.className = 'ml-4 text-gray-600'; // Indent slightly
+                usedForP.innerHTML = `<strong>Used for:</strong> ${ingredient.used_for_raw.replace(/<br\s*\/?>/gi, ', ')}`;
+                containerDiv.appendChild(usedForP);
             }
 
+            // Display "Other Names/Aliases" directly
             if (Array.isArray(ingredient.other_names) && ingredient.other_names.length > 0) {
                 const otherNamesP = document.createElement('p');
-                otherNamesP.innerHTML = `<strong>Other Names/Aliases:</strong>`;
-                contentDiv.appendChild(otherNamesP);
-                const otherNamesUl = document.createElement('ul');
-                otherNamesUl.className = 'list-disc pl-4';
-                ingredient.other_names.forEach(otherName => {
-                    const li = document.createElement('li');
-                    li.textContent = otherName;
-                    otherNamesUl.appendChild(li);
-                });
-                contentDiv.appendChild(otherNamesUl);
+                otherNamesP.className = 'ml-4 text-gray-600'; // Indent slightly
+                otherNamesP.innerHTML = `<strong>Other Names:</strong> ${ingredient.other_names.join(', ')}`;
+                containerDiv.appendChild(otherNamesP);
             }
 
-            details.appendChild(contentDiv);
-            return details;
+            return containerDiv;
         }
 
 
@@ -338,8 +297,7 @@
                         li.textContent = item;
                         ul.appendChild(li);
                     } else {
-                        // For FDA common and non-common, directly append the details element
-                        // The details element itself will act as the list item
+                        // For FDA common and non-common, use the simplified display function
                         ul.appendChild(createFdaIngredientDetail(item));
                     }
                 });
