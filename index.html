@@ -52,6 +52,43 @@
             border-radius: 9999px; /* Fully rounded */
             transition: width 0.5s ease-in-out;
         }
+
+        /* New styles for ingredient badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem; /* px-2 py-1 */
+            border-radius: 9999px; /* rounded-full */
+            font-size: 0.75rem; /* text-xs */
+            font-weight: 600; /* font-semibold */
+            line-height: 1;
+            white-space: nowrap;
+            margin-left: 0.5rem; /* ml-2 */
+        }
+
+        /* Styles for individual ingredient details dropdown */
+        details.ingredient-detail-toggle > summary {
+            cursor: pointer;
+            list-style: none; /* Hide default arrow */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.25rem 0; /* Small padding within the list item */
+        }
+        details.ingredient-detail-toggle > summary::-webkit-details-marker,
+        details.ingredient-detail-toggle > summary::marker {
+            display: none;
+        }
+        details.ingredient-detail-toggle[open] > summary .arrow-icon {
+            transform: rotate(90deg);
+        }
+        .ingredient-details-content {
+            padding-left: 1.5rem; /* Indent content */
+            border-left: 1px solid #e5e7eb; /* Light border for visual grouping */
+            margin-left: 0.75rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -193,6 +230,79 @@
             modal.classList.add('hidden');
         });
 
+        // Helper function to create ingredient details dropdown (for FDA substances)
+        function createFdaIngredientDetail(ingredient) {
+            const details = document.createElement('details');
+            details.className = 'ingredient-detail-toggle';
+
+            const summary = document.createElement('summary');
+            summary.className = 'flex items-center justify-between py-1'; // Adjusted padding
+            
+            const nameAndBadges = document.createElement('div');
+            nameAndBadges.className = 'flex items-center flex-wrap'; // Allow badges to wrap if many
+            
+            const ingredientNameSpan = document.createElement('span');
+            ingredientNameSpan.className = 'ingredient-name font-medium text-gray-800';
+            ingredientNameSpan.textContent = ingredient.name;
+            nameAndBadges.appendChild(ingredientNameSpan);
+
+            // Add color-coded badges for technical effects
+            if (Array.isArray(ingredient.used_for_categories) && ingredient.used_for_categories.length > 0) {
+                ingredient.used_for_categories.forEach((category, index) => {
+                    const badge = document.createElement('span');
+                    // Use the color from the backend, or a default gray if not provided
+                    badge.className = `badge ${ingredient.used_for_colors[index] || 'bg-gray-200 text-gray-700'}`;
+                    badge.textContent = category;
+                    nameAndBadges.appendChild(badge);
+                });
+            }
+            summary.appendChild(nameAndBadges);
+
+            // Arrow icon for expand/collapse
+            const arrowIcon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            arrowIcon.setAttribute("class", "arrow-icon w-4 h-4 text-gray-400 transform transition-transform duration-200");
+            arrowIcon.setAttribute("viewBox", "0 0 20 20");
+            arrowIcon.setAttribute("fill", "currentColor");
+            arrowIcon.innerHTML = '<path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />';
+            summary.appendChild(arrowIcon);
+
+            details.appendChild(summary);
+
+            // Content for the expandable details
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ingredient-details-content text-gray-700 text-sm space-y-1';
+
+            if (ingredient.canonical_name && ingredient.canonical_name !== ingredient.name) {
+                const canonicalNameP = document.createElement('p');
+                canonicalNameP.innerHTML = `<strong>Canonical Name:</strong> ${ingredient.canonical_name}`;
+                contentDiv.appendChild(canonicalNameP);
+            }
+            
+            if (ingredient.used_for_raw && ingredient.used_for_raw !== "N/A") {
+                const usedForP = document.createElement('p');
+                usedForP.innerHTML = `<strong>Technical Effect(s):</strong> ${ingredient.used_for_raw.replace(/<br\s*\/?>/gi, ', ')}`; // Replace <br> with comma for display
+                contentDiv.appendChild(usedForP);
+            }
+
+            if (Array.isArray(ingredient.other_names) && ingredient.other_names.length > 0) {
+                const otherNamesP = document.createElement('p');
+                otherNamesP.innerHTML = `<strong>Other Names/Aliases:</strong>`;
+                contentDiv.appendChild(otherNamesP);
+                const otherNamesUl = document.createElement('ul');
+                otherNamesUl.className = 'list-disc pl-4';
+                ingredient.other_names.forEach(otherName => {
+                    const li = document.createElement('li');
+                    li.textContent = otherName;
+                    otherNamesUl.appendChild(li);
+                });
+                contentDiv.appendChild(otherNamesUl);
+            }
+
+            details.appendChild(contentDiv);
+            return details;
+        }
+
+
         function createIngredientGroup(title, items, type) {
             const details = document.createElement('details');
             details.className = `ingredient-group bg-white p-4 rounded-lg shadow-sm border border-gray-200 ${items.length === 0 ? 'opacity-60' : ''}`;
@@ -215,10 +325,19 @@
 
             if (items.length > 0) {
                 const ul = document.createElement('ul');
-                ul.className = 'list-disc pl-8 py-2 text-gray-700';
+                ul.className = 'list-disc pl-8 py-2 text-gray-700 space-y-2'; // Added space-y-2 for spacing between items
                 items.forEach(item => {
                     const li = document.createElement('li');
-                    li.textContent = item;
+                    // For common ingredients and unidentified, just display the text
+                    if (type === 'common' || type === 'unidentified') {
+                        li.textContent = item;
+                    } else {
+                        // For FDA common and non-common, create the detailed expandable element
+                        li.appendChild(createFdaIngredientDetail(item));
+                        // Remove default list-style for items that are details elements
+                        li.style.listStyleType = 'none';
+                        li.style.marginLeft = '-1rem'; // Adjust to align with other list items
+                    }
                     ul.appendChild(li);
                 });
                 details.appendChild(ul);
@@ -247,7 +366,7 @@
             if (typeof novaScore === 'number' && novaScore >= 1 && novaScore <= 4) {
                 for (let i = 1; i <= 4; i++) {
                     const bar = document.createElement('span');
-                    bar.className = `inline-block w-4 h-4 rounded-full mr-1 ${i <= novaScore ? 'bg-green-500' : 'bg-gray-300'}`;
+                    bar.className = `inline-block w-4 h-4 rounded-full mr-1`;
                     // Adjust color based on NOVA score for better visual representation
                     if (i <= novaScore) {
                         if (novaScore === 1) bar.classList.add('bg-green-500');
@@ -357,6 +476,7 @@
                     } else {
                         // Pass structured data directly to display function
                         // We need to calculate num_matched and num_total on the frontend for the data score bar
+                        // Ensure optional chaining for nested properties
                         const num_matched = (data.identified_fda_non_common?.length || 0) + 
                                             (data.identified_fda_common?.length || 0) + 
                                             (data.identified_common_ingredients_only?.length || 0);
