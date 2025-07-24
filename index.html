@@ -89,6 +89,11 @@
             padding-top: 0.5rem;
             padding-bottom: 0.5rem;
         }
+        /* Ensure details elements within ul don't get default list-style */
+        ul.list-disc details {
+            list-style-type: none;
+            margin-left: -1rem; /* Adjust to align with other list items */
+        }
     </style>
 </head>
 <body class="p-4 sm:p-6 md:p-8">
@@ -327,18 +332,16 @@
                 const ul = document.createElement('ul');
                 ul.className = 'list-disc pl-8 py-2 text-gray-700 space-y-2'; // Added space-y-2 for spacing between items
                 items.forEach(item => {
-                    const li = document.createElement('li');
-                    // For common ingredients and unidentified, just display the text
+                    // For common ingredients and unidentified, create a standard list item
                     if (type === 'common' || type === 'unidentified') {
+                        const li = document.createElement('li');
                         li.textContent = item;
+                        ul.appendChild(li);
                     } else {
-                        // For FDA common and non-common, create the detailed expandable element
-                        li.appendChild(createFdaIngredientDetail(item));
-                        // Remove default list-style for items that are details elements
-                        li.style.listStyleType = 'none';
-                        li.style.marginLeft = '-1rem'; // Adjust to align with other list items
+                        // For FDA common and non-common, directly append the details element
+                        // The details element itself will act as the list item
+                        ul.appendChild(createFdaIngredientDetail(item));
                     }
-                    ul.appendChild(li);
                 });
                 details.appendChild(ul);
             } else {
