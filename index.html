@@ -63,11 +63,11 @@
             font-weight: 600; /* font-semibold */
             line-height: 1;
             white-space: nowrap;
-            margin-left: 0.5rem; /* ml-2 */
+            margin-right: 0.5rem; /* ml-2 -> changed to mr-2 for spacing between badges */
+            margin-bottom: 0.5rem; /* Added for vertical spacing in flex wrap */
         }
 
         /* Styles for individual ingredient details dropdown */
-        /* Removed specific styles for details.ingredient-detail-toggle as it's being removed */
         .ingredient-details-content {
             padding-left: 1.5rem; /* Indent content */
             border-left: 1px solid #e5e7eb; /* Light border for visual grouping */
@@ -79,6 +79,15 @@
         ul.list-disc details {
             list-style-type: none;
             margin-left: -1rem; /* Adjust to align with other list items */
+        }
+
+        /* Styles for the info icon and popover */
+        /* These styles are now for the details summary icon, not a separate popover */
+        .ingredient-details-summary-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        details[open] > summary .ingredient-details-summary-icon {
+            transform: rotate(90deg);
         }
     </style>
 </head>
@@ -184,6 +193,22 @@
                 <button id="modalCloseButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Close</button>
             </div>
         </div>
+
+        <!-- Info Popover Modal (for raw technical effects and other names) -->
+        <!-- This modal is no longer used, its content is integrated into the ingredient details dropdown -->
+        <div id="infoPopoverModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                <h4 class="text-lg font-bold text-gray-800 mb-3">Ingredient Details</h4>
+                <div class="space-y-2 text-gray-700 text-sm">
+                    <p><strong>Ingredient:</strong> <span id="popoverIngredientName" class="font-semibold"></span></p>
+                    <p><strong>Used for (Raw):</strong> <span id="popoverUsedForRaw"></span></p>
+                    <p><strong>Other Names:</strong> <span id="popoverOtherNames"></span></p>
+                </div>
+                <div class="mt-6 text-right">
+                    <button id="infoPopoverCloseButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -211,6 +236,13 @@
         const modalMessage = document.getElementById('modalMessage');
         const modalCloseButton = document.getElementById('modalCloseButton');
 
+        // Elements for the new Info Popover Modal (now unused due to new UX)
+        const infoPopoverModal = document.getElementById('infoPopoverModal'); // Kept for reference, but hidden
+        const popoverIngredientName = document.getElementById('popoverIngredientName');
+        const popoverUsedForRaw = document.getElementById('popoverUsedForRaw');
+        const popoverOtherNames = document.getElementById('popoverOtherNames');
+        const infoPopoverCloseButton = document.getElementById('infoPopoverCloseButton');
+
         function showModal(title, message) {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
@@ -221,49 +253,65 @@
             modal.classList.add('hidden');
         });
 
-        // Helper function to create ingredient details dropdown (for FDA substances)
-        // THIS FUNCTION IS NOW MODIFIED TO SIMPLY DISPLAY CONTENT, NOT USE <DETAILS>
+        // The infoPopoverCloseButton and infoPopoverModal are no longer actively used in this UX
+        // but kept here for completeness in case they are re-purposed.
+        infoPopoverCloseButton.addEventListener('click', () => {
+            infoPopoverModal.classList.add('hidden');
+        });
+
+
+        // Helper function to create FDA ingredient display with expandable details
         function createFdaIngredientDetail(ingredient) {
-            const containerDiv = document.createElement('div');
-            containerDiv.className = 'py-1 text-gray-700 text-sm space-y-1'; // Simple container for each FDA ingredient
+            const details = document.createElement('details');
+            details.className = 'ingredient-details-item py-1'; // Added class for styling individual details
 
-            const nameAndBadges = document.createElement('div');
-            nameAndBadges.className = 'flex items-center flex-wrap';
+            const summary = document.createElement('summary');
+            summary.className = 'flex items-center text-gray-800 font-medium cursor-pointer list-none'; // list-none to hide default arrow
+            summary.innerHTML = `
+                <span class="ingredient-name flex-grow break-words">${ingredient.name}</span>
+                <svg class="ingredient-details-summary-icon w-4 h-4 text-gray-400 ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                </svg>
+            `;
+            details.appendChild(summary);
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ingredient-details-content mt-2 space-y-2'; // Added space-y for internal spacing
+
+            // Display Other Names
+            const otherNamesP = document.createElement('p');
+            otherNamesP.className = 'text-gray-700 text-sm';
+            otherNamesP.innerHTML = `<strong>Other Names:</strong> ${Array.isArray(ingredient.other_names) && ingredient.other_names.length > 0 ? ingredient.other_names.join(', ') : 'N/A'}`;
+            contentDiv.appendChild(otherNamesP);
+
+            // Display "Used for" technical effects as individual color bubbles
+            const usedForContainer = document.createElement('div');
+            usedForContainer.className = 'flex flex-wrap gap-2 pt-1'; // Use gap for spacing between bubbles
             
-            const ingredientNameSpan = document.createElement('span');
-            ingredientNameSpan.className = 'ingredient-name font-medium text-gray-800';
-            ingredientNameSpan.textContent = ingredient.name;
-            nameAndBadges.appendChild(ingredientNameSpan);
+            const usedForLabel = document.createElement('span');
+            usedForLabel.className = 'font-semibold text-gray-800 text-sm mr-2';
+            usedForLabel.textContent = 'Used for:';
+            usedForContainer.appendChild(usedForLabel);
 
-            // Add color-coded badges for technical effects
-            if (Array.isArray(ingredient.used_for_categories) && ingredient.used_for_categories.length > 0) {
-                ingredient.used_for_categories.forEach((category, index) => {
+
+            if (Array.isArray(ingredient.individual_technical_effects) && ingredient.individual_technical_effects.length > 0) {
+                ingredient.individual_technical_effects.forEach(effect => {
                     const badge = document.createElement('span');
                     // Use the color from the backend, or a default gray if not provided
-                    badge.className = `badge ${ingredient.used_for_colors[index] || 'bg-gray-200 text-gray-700'}`;
-                    badge.textContent = category;
-                    nameAndBadges.appendChild(badge);
+                    badge.className = `badge ${effect.color || 'bg-gray-200 text-gray-700'}`;
+                    badge.textContent = effect.phrase; // Display the raw phrase
+                    usedForContainer.appendChild(badge);
                 });
+            } else {
+                const noUsedFor = document.createElement('span');
+                noUsedFor.className = 'text-gray-500 italic text-sm';
+                noUsedFor.textContent = 'N/A';
+                usedForContainer.appendChild(noUsedFor);
             }
-            containerDiv.appendChild(nameAndBadges);
+            contentDiv.appendChild(usedForContainer);
 
-            // Display "Used for (Technical Effect)" directly
-            if (ingredient.used_for_raw && ingredient.used_for_raw !== "N/A") {
-                const usedForP = document.createElement('p');
-                usedForP.className = 'ml-4 text-gray-600'; // Indent slightly
-                usedForP.innerHTML = `<strong>Used for:</strong> ${ingredient.used_for_raw.replace(/<br\s*\/?>/gi, ', ')}`;
-                containerDiv.appendChild(usedForP);
-            }
-
-            // Display "Other Names/Aliases" directly
-            if (Array.isArray(ingredient.other_names) && ingredient.other_names.length > 0) {
-                const otherNamesP = document.createElement('p');
-                otherNamesP.className = 'ml-4 text-gray-600'; // Indent slightly
-                otherNamesP.innerHTML = `<strong>Other Names:</strong> ${ingredient.other_names.join(', ')}`;
-                containerDiv.appendChild(otherNamesP);
-            }
-
-            return containerDiv;
+            details.appendChild(contentDiv);
+            return details;
         }
 
 
@@ -289,16 +337,17 @@
 
             if (items.length > 0) {
                 const ul = document.createElement('ul');
-                ul.className = 'list-disc pl-8 py-2 text-gray-700 space-y-2'; // Added space-y-2 for spacing between items
+                ul.className = 'list-disc pl-8 py-2 text-gray-700 space-y-3'; // Increased space-y for better visual separation
                 items.forEach(item => {
+                    const li = document.createElement('li');
                     // For common ingredients and unidentified, create a standard list item
                     if (type === 'common' || type === 'unidentified') {
-                        const li = document.createElement('li');
                         li.textContent = item;
                         ul.appendChild(li);
                     } else {
-                        // For FDA common and non-common, use the simplified display function
-                        ul.appendChild(createFdaIngredientDetail(item));
+                        // For FDA common and non-common, use the new expandable display function
+                        li.appendChild(createFdaIngredientDetail(item));
+                        ul.appendChild(li);
                     }
                 });
                 details.appendChild(ul);
