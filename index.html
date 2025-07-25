@@ -97,6 +97,14 @@
             /* Potentially add font-smoothing for better rendering on some OS/browsers */
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            /* New properties to disable stylistic alternates/ligatures */
+            font-feature-settings: "liga" off, "clig" off, "calt" off;
+            font-variant-ligatures: none;
+        }
+
+        /* New rule to remove bullet points from list items containing details */
+        ul.list-disc li:has(details.ingredient-details-item) {
+            list-style-type: none;
         }
     </style>
 </head>
