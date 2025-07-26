@@ -1,541 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Grocery Lens</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background */
-        }
-        .modal {
-            z-index: 1000;
-        }
-        #productDetails {
-            transition: opacity 0.5s ease-in-out;
-        }
-        /* Custom styles for details/summary to ensure consistent look */
-        details.ingredient-group > summary {
-            cursor: pointer;
-            padding: 0.75rem 0.5rem; /* py-3 px-2 */
-            margin-bottom: 0.5rem;
-            list-style: none; /* Hide default arrow */
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background-color: #f9fafb; /* Lighter background for headers */
-            border-radius: 0.375rem; /* rounded-md */
-        }
-        details.ingredient-group > summary::-webkit-details-marker,
-        details.ingredient-group > summary::marker {
-            display: none; /* Hide default marker for Webkit and standard */
-        }
-        details.ingredient-group[open] > summary .arrow-icon {
-            transform: rotate(90deg); /* Rotate arrow when open */
-        }
-        .arrow-icon {
-            transition: transform 0.2s ease-in-out;
-        }
-        /* Custom styles for the data completeness bar */
-        .data-completeness-bar-container {
-            background-color: #e5e7eb; /* Light gray for the background of the bar */
-            border-radius: 9999px; /* Fully rounded */
-            height: 0.75rem; /* h-3 */
-            overflow: hidden;
-        }
-        .data-completeness-bar-fill {
-            height: 100%;
-            background-color: #3b82f6; /* Blue for the fill */
-            border-radius: 9999px; /* Fully rounded */
-            transition: width 0.5s ease-in-out;
-        }
-
-        /* New styles for ingredient badges */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.5rem; /* px-2 py-1 */
-            border-radius: 9999px; /* rounded-full */
-            font-size: 0.75rem; /* text-xs */
-            font-weight: 600; /* font-semibold */
-            line-height: 1;
-            white-space: nowrap;
-            margin-right: 0.5rem; /* ml-2 -> changed to mr-2 for spacing between badges */
-            margin-bottom: 0.5rem; /* Added for vertical spacing in flex wrap */
-        }
-
-        /* Styles for individual ingredient details dropdown */
-        .ingredient-details-content {
-            padding-left: 1.5rem; /* Indent content */
-            border-left: 1px solid #e5e7eb; /* Light border for visual grouping */
-            margin-left: 0.75rem;
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-        }
-        /* Ensure details elements within ul don't get default list-style */
-        ul.list-disc details {
-            list-style-type: none;
-            margin-left: -1rem; /* Adjust to align with other list items */
-        }
-
-        /* Styles for the info icon and popover */
-        /* These styles are now for the details summary icon, not a separate popover */
-        .ingredient-details-summary-icon {
-            transition: transform 0.2s ease-in-out;
-        }
-        details[open] > summary .ingredient-details-summary-icon {
-            transform: rotate(90deg);
-        }
-
-        /* Added style to explicitly define font for ingredient names */
-        .ingredient-name {
-            font-family: 'Inter', sans-serif; /* Ensure Inter is applied */
-            font-weight: 500; /* Explicitly set font weight to 500, which is now loaded */
-            /* Potentially add font-smoothing for better rendering on some OS/browsers */
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            /* New properties to disable stylistic alternates/ligatures */
-            font-feature-settings: "liga" off, "clig" off, "calt" off;
-            font-variant-ligatures: none;
-        }
-
-        /* New rule to remove bullet points from list items containing details */
-        ul.list-disc li:has(details.ingredient-details-item) {
-            list-style-type: none;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Smart Grocery Lens</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="p-4 sm:p-6 md:p-8">
-    <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-lg shadow-xl">
-        <h1 class="text-3xl sm:text-4xl font-extrabold text-center text-gray-900 mb-8">Smart Grocery Lens</h1>
+<body class="bg-gray-100 font-sans text-gray-800">
+  <div class="min-h-screen flex flex-col items-center justify-start pt-16 px-4">
+    <h1 class="text-4xl font-bold mb-4 text-center">Smart Grocery Lens</h1>
+    <p class="text-lg text-center mb-6 max-w-xl">Enter a barcode number (GTIN) to analyze its ingredients and see its Trust Report.</p>
 
-        <!-- GTIN Input Section -->
-        <div class="mb-8 p-6 bg-gray-50 rounded-lg shadow-inner">
-            <label for="gtinInput" class="block text-gray-700 text-lg font-semibold mb-3">Enter GTIN/UPC:</label>
-            <div class="flex flex-col sm:flex-row gap-4">
-                <input type="text" id="gtinInput" placeholder="e.g., 00027000612323"
-                       class="flex-grow p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-800 text-base">
-                <button id="scanButton"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-md shadow-lg transition duration-300 ease-in-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75 flex items-center justify-center gap-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
-                        <path fill-rule="evenodd" d="M3.75 6.75a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-6a3 3 0 0 0-3-3H3.75ZM7.5 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H7.5ZM6.75 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H6.75a.75.75 0 0 1-.75-.75ZM6 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H6a.75.75 0 0 0-.75.75ZM9 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H9ZM8.25 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H8.25a.75.75 0 0 1-.75-.75ZM7.5 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H7.5a.75.75 0 0 0-.75.75ZM12 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H12ZM11.25 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H11.25a.75.75 0 0 1-.75-.75ZM10.5 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H10.5a.75.75 0 0 0-.75.75ZM14.25 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H14.25ZM13.5 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H13.5a.75.75 0 0 1-.75-.75ZM12.75 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H12.75a.75.75 0 0 0-.75.75ZM16.5 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H16.5ZM15.75 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H15.75a.75.75 0 0 1-.75-.75ZM15 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H15a.75.75 0 0 0-.75.75ZM18.75 9a.75.75 0 0 0 0 1.5h.008a.75.75 0 0 0 0-1.5H18.75ZM18 12a.75.75 0 0 1 .75-.75h.008a.75.75 0 0 1 0 1.5H18a.75.75 0 0 1-.75-.75ZM17.25 14.25a.75.75 0 0 0 .75.75h.008a.75.75 0 0 0 0-1.5H17.25a.75.75 0 0 0-.75.75Z" clip-rule="evenodd" />
-                    </svg>
-                    Scan Product
-                </button>
-            </div>
-        </div>
-
-        <!-- Loading Indicator -->
-        <div id="loadingIndicator" class="hidden flex justify-center items-center py-8">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-blue-500"></div>
-            <p class="ml-4 text-gray-600 text-lg">Loading product data...</p>
-        </div>
-
-        <!-- Product Details Section -->
-        <div id="productDetails" class="hidden opacity-0 space-y-6">
-            <h2 id="productName" class="text-2xl sm:text-3xl font-bold text-gray-800"></h2>
-            <p id="productGtin" class="text-gray-600 text-sm mb-4"></p>
-
-            <!-- NOVA Classification Card -->
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="flex items-center text-xl font-semibold text-gray-800 mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-green-500 mr-2">
-                        <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" />
-                    </svg>
-                    NOVA Classification
-                </h3>
-                <div class="flex items-center mb-2">
-                    <span class="text-gray-700 font-medium mr-2">NOVA Score:</span>
-                    <div id="novaScoreBars" class="flex space-x-1">
-                        <!-- Bars will be rendered here by JS -->
-                    </div>
-                    <span id="novaScoreValue" class="ml-2 font-bold text-gray-900"></span>
-                </div>
-                <p id="novaDescription" class="text-gray-600 italic"></p>
-            </div>
-
-            <!-- Key Insights Card -->
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="flex items-center text-xl font-semibold text-gray-800 mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-purple-500 mr-2">
-                        <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                    </svg>
-                    Key Insights
-                </h3>
-                <p id="keyInsights" class="text-green-700 bg-green-50 p-3 rounded-md"></p>
-            </div>
-
-            <!-- Data Completeness Card -->
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="flex items-center text-xl font-semibold text-gray-800 mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-blue-500 mr-2">
-                        <path d="M11.25 4.533A9.752 9.752 0 0 0 5.617 9.52l-1.391-.531a10.004 10.004 0 0 1 5.015-4.578 1.5 1.5 0 0 1 1.769 1.29Z" />
-                        <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6a.75.75 0 0 0 .75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clip-rule="evenodd" />
-                    </svg>
-                    Data Completeness
-                </h3>
-                <div class="mb-2">
-                    <span class="text-gray-700 font-medium">Score: <span id="dataScoreValue" class="font-bold"></span> (<span id="dataCompletenessLevel"></span>)</span>
-                </div>
-                <div class="data-completeness-bar-container">
-                    <div id="dataCompletenessBarFill" class="data-completeness-bar-fill" style="width: 0%;"></div>
-                </div>
-                <p id="dataCompletenessDetails" class="text-gray-600 text-sm mt-2"></p>
-            </div>
-
-            <!-- Ingredients Analysis Card -->
-            <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
-                <h3 class="flex items-center text-xl font-semibold text-gray-800 mb-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-orange-500 mr-2">
-                        <path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z" clip-rule="evenodd" />
-                    </svg>
-                    Ingredients Analysis
-                    <span class="ml-auto text-gray-500 text-sm italic">Based on FDA additive database and common ingredient lists.</span>
-                </h3>
-
-                <div id="ingredientGroups" class="space-y-4">
-                    <!-- Ingredient groups will be rendered here by JS -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal for Errors/Messages -->
-        <div id="modal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
-            <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center">
-                <h3 id="modalTitle" class="text-xl font-bold text-gray-800 mb-4"></h3>
-                <p id="modalMessage" class="text-gray-600 mb-6"></p>
-                <button id="modalCloseButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Close</button>
-            </div>
-        </div>
-
-        <!-- Info Popover Modal (for raw technical effects and other names) -->
-        <!-- This modal is no longer used, its content is integrated into the ingredient details dropdown -->
-        <div id="infoPopoverModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center hidden">
-            <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
-                <h4 class="text-lg font-bold text-gray-800 mb-3">Ingredient Details</h4>
-                <div class="space-y-2 text-gray-700 text-sm">
-                    <p><strong>Ingredient:</strong> <span id="popoverIngredientName" class="font-semibold"></span></p>
-                    <p><strong>Used for (Raw):</strong> <span id="popoverUsedForRaw"></span></p>
-                    <p><strong>Other Names:</strong> <span id="popoverOtherNames"></span></p>
-                </div>
-                <div class="mt-6 text-right">
-                    <button id="infoPopoverCloseButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Close</button>
-                </div>
-            </div>
-        </div>
+    <div class="w-full max-w-md mb-6">
+      <input
+        type="text"
+        id="gtinInput"
+        placeholder="Enter GTIN barcode (e.g., 071998000051)"
+        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+      <button
+        onclick="submitGTIN(document.getElementById('gtinInput').value)"
+        class="mt-4 w-full bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition"
+      >
+        Scan Product
+      </button>
     </div>
 
-    <script>
-        // Set your backend API base URL here
-        // IMPORTANT: In production, replace this with your actual Render service URL
-        const API_BASE_URL = 'https://smart-grocery-backend-jxku.onrender.com'; // Replace with your Render URL
+    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+      <div class="bg-white p-6 rounded-2xl shadow-lg max-w-sm text-center">
+        <p id="modalMessage" class="text-lg font-semibold text-gray-700">Scanning product…</p>
+      </div>
+    </div>
 
-        const gtinInput = document.getElementById('gtinInput');
-        const scanButton = document.getElementById('scanButton');
-        const loadingIndicator = document.getElementById('loadingIndicator');
-        const productDetailsDiv = document.getElementById('productDetails');
-        const productNameElem = document.getElementById('productName');
-        const productGtinElem = document.getElementById('productGtin');
-        const novaScoreBarsElem = document.getElementById('novaScoreBars');
-        const novaScoreValueElem = document.getElementById('novaScoreValue');
-        const novaDescriptionElem = document.getElementById('novaDescription');
-        const keyInsightsElem = document.getElementById('keyInsights');
-        const dataScoreValueElem = document.getElementById('dataScoreValue');
-        const dataCompletenessLevelElem = document.getElementById('dataCompletenessLevel');
-        const dataCompletenessBarFillElem = document.getElementById('dataCompletenessBarFill');
-        const dataCompletenessDetailsElem = document.getElementById('dataCompletenessDetails');
-        const ingredientGroupsElem = document.getElementById('ingredientGroups');
-        const modal = document.getElementById('modal');
-        const modalTitle = document.getElementById('modalTitle');
-        const modalMessage = document.getElementById('modalMessage');
-        const modalCloseButton = document.getElementById('modalCloseButton');
-
-        // Elements for the new Info Popover Modal (now unused due to new UX)
-        const infoPopoverModal = document.getElementById('infoPopoverModal'); // Kept for reference, but hidden
-        const popoverIngredientName = document.getElementById('popoverIngredientName');
-        const popoverUsedForRaw = document.getElementById('popoverUsedForRaw');
-        const popoverOtherNames = document.getElementById('popoverOtherNames');
-        const infoPopoverCloseButton = document.getElementById('infoPopoverCloseButton');
-
-        function showModal(title, message) {
-            modalTitle.textContent = title;
-            modalMessage.textContent = message;
-            modal.classList.remove('hidden');
-        }
-
-        modalCloseButton.addEventListener('click', () => {
-            modal.classList.add('hidden');
-        });
-
-        // The infoPopoverCloseButton and infoPopoverModal are no longer actively used in this UX
-        // but kept here for completeness in case they are re-purposed.
-        infoPopoverCloseButton.addEventListener('click', () => {
-            infoPopoverModal.classList.add('hidden');
-        });
-
-
-        // Helper function to create FDA ingredient display with expandable details
-        function createFdaIngredientDetail(ingredient) {
-            const details = document.createElement('details');
-            details.className = 'ingredient-details-item py-1'; // Added class for styling individual details
-
-            const summary = document.createElement('summary');
-            summary.className = 'flex items-center text-gray-800 font-medium cursor-pointer list-none'; // list-none to hide default arrow
-            summary.innerHTML = `
-                <span class="ingredient-name flex-grow break-words">${ingredient.name}</span>
-                <svg class="ingredient-details-summary-icon w-4 h-4 text-gray-400 ml-2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                </svg>
-            `;
-            details.appendChild(summary);
-
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'ingredient-details-content mt-2 space-y-2'; // Added space-y for internal spacing
-
-            // Display Other Names
-            const otherNamesP = document.createElement('p');
-            otherNamesP.className = 'text-gray-700 text-sm';
-            otherNamesP.innerHTML = `<strong>Other Names:</strong> ${Array.isArray(ingredient.other_names) && ingredient.other_names.length > 0 ? ingredient.other_names.join(', ') : 'N/A'}`;
-            contentDiv.appendChild(otherNamesP);
-
-            // Display "Used for" technical effects as individual color bubbles
-            const usedForContainer = document.createElement('div');
-            usedForContainer.className = 'flex flex-wrap gap-2 pt-1'; // Use gap for spacing between bubbles
-            
-            const usedForLabel = document.createElement('span');
-            usedForLabel.className = 'font-semibold text-gray-800 text-sm mr-2';
-            usedForLabel.textContent = 'Used for:';
-            usedForContainer.appendChild(usedForLabel);
-
-
-            if (Array.isArray(ingredient.individual_technical_effects) && ingredient.individual_technical_effects.length > 0) {
-                ingredient.individual_technical_effects.forEach(effect => {
-                    const badge = document.createElement('span');
-                    // Use the color from the backend, or a default gray if not provided
-                    badge.className = `badge ${effect.color || 'bg-gray-200 text-gray-700'}`;
-                    badge.textContent = effect.phrase; // Display the raw phrase
-                    usedForContainer.appendChild(badge);
-                });
-            } else {
-                const noUsedFor = document.createElement('span');
-                noUsedFor.className = 'text-gray-500 italic text-sm';
-                noUsedFor.textContent = 'N/A';
-                usedForContainer.appendChild(noUsedFor);
-            }
-            contentDiv.appendChild(usedForContainer);
-
-            details.appendChild(contentDiv);
-            return details;
-        }
-
-
-        function createIngredientGroup(title, items, type) {
-            const details = document.createElement('details');
-            details.className = `ingredient-group bg-white p-4 rounded-lg shadow-sm border border-gray-200 ${items.length === 0 ? 'opacity-60' : ''}`;
-
-            const summary = document.createElement('summary');
-            summary.className = 'flex items-center justify-between text-lg font-semibold text-gray-800 cursor-pointer py-2';
-            summary.innerHTML = `
-                <div class="flex items-center">
-                    ${type === 'common' ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-green-500 mr-2"><path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.75-5.25Z" clip-rule="evenodd" /></svg>' : ''}
-                    ${type === 'fda_common' ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-blue-500 mr-2"><path fill-rule="evenodd" d="M11.54 22.351A8.287 8.287 0 0 0 18 21.75a9.787 9.787 0 0 0 1.54-.109l-6.093-6.092a3.001 3.001 0 0 0-3.75 0l-6.093 6.092ZM18.279 1.767c.92-.51 1.94-.92 3-1.107V8.75a.75.75 0 0 1-1.5 0V2.844a18.67 18.67 0 0 0-2.34-.144 1.5 1.5 0 0 1-1.391-1.614 1.5 1.5 0 0 1 1.014-1.485 1.5 1.5 0 0 1 .49-.062Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25Zm-3.75 7.5a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5h-1.5Zm3.75 2.25a.75.75 0 0 0-1.5 0v1.5a.75.75 0 0 0 1.5 0v-1.5Zm2.25-2.25a.75.75 0 0 0 0 1.5h1.5a.75.75 0 0 0 0-1.5h-1.5Z" clip-rule="evenodd" /></svg>' : ''}
-                    ${type === 'fda_non_common' ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-red-500 mr-2"><path fill-rule="evenodd" d="M9.401 3.003c1.155-1.723 3.465-1.723 4.62 0L19.5 10.5h-9.284c-.584 0-1.122.374-1.343.93l-3.657 9.142a.75.75 0 0 1-1.372-.366L7.401 3.003ZM12 12.75a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V13.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg>' : ''}
-                    ${type === 'unidentified' ? '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-gray-500 mr-2"><path fill-rule="evenodd" d="M9.401 3.003c1.155-1.723 3.465-1.723 4.62 0L19.5 10.5h-9.284c-.584 0-1.122.374-1.343.93l-3.657 9.142a.75.75 0 0 1-1.372-.366L7.401 3.003ZM12 12.75a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V13.5a.75.75 0 0 1 .75-.75Z" clip-rule="evenodd" /></svg>' : ''}
-                    ${title} (${items.length})
-                </div>
-                <svg class="arrow-icon w-5 h-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
-                </svg>
-            `;
-            details.appendChild(summary);
-
-            if (items.length > 0) {
-                const ul = document.createElement('ul');
-                ul.className = 'list-disc pl-8 py-2 text-gray-700 space-y-3'; // Increased space-y for better visual separation
-                items.forEach(item => {
-                    const li = document.createElement('li');
-                    // For common ingredients and unidentified, create a standard list item
-                    if (type === 'common' || type === 'unidentified') {
-                        li.textContent = item;
-                        ul.appendChild(li);
-                    } else {
-                        // For FDA common and non-common, use the new expandable display function
-                        li.appendChild(createFdaIngredientDetail(item));
-                        ul.appendChild(li);
-                    }
-                });
-                details.appendChild(ul);
-            } else {
-                const p = document.createElement('p');
-                p.className = 'text-gray-500 italic pl-4 py-2';
-                p.textContent = `No ${title.toLowerCase()} found.`;
-                details.appendChild(p);
-            }
-
-            return details;
-        }
-
-        function displayProductDetails(data) {
-            console.log("Data received by displayProductDetails:", data); // Log the full data object
-
-            productNameElem.textContent = data.description || 'Product Not Found';
-            productGtinElem.textContent = `GTIN: ${data.gtin || 'N/A'}`;
-
-            // NOVA Classification
-            const novaScore = data.nova_score;
-            novaScoreValueElem.textContent = novaScore !== undefined ? novaScore : 'N/A';
-            novaDescriptionElem.textContent = data.nova_description || 'Cannot determine NOVA score.';
-
-            novaScoreBarsElem.innerHTML = ''; // Clear previous bars
-            if (typeof novaScore === 'number' && novaScore >= 1 && novaScore <= 4) {
-                for (let i = 1; i <= 4; i++) {
-                    const bar = document.createElement('span');
-                    bar.className = `inline-block w-4 h-4 rounded-full mr-1`;
-                    // Adjust color based on NOVA score for better visual representation
-                    if (i <= novaScore) {
-                        if (novaScore === 1) bar.classList.add('bg-green-500');
-                        else if (novaScore === 2) bar.classList.add('bg-lime-500');
-                        else if (novaScore === 3) bar.classList.add('bg-yellow-500');
-                        else if (novaScore === 4) bar.classList.add('bg-red-500');
-                        else bar.classList.add('bg-gray-300'); // Fallback
-                    } else {
-                        bar.classList.add('bg-gray-300');
-                    }
-                    novaScoreBarsElem.appendChild(bar);
-                }
-            } else {
-                novaScoreBarsElem.textContent = 'N/A';
-            }
-
-
-            // Key Insights
-            keyInsightsElem.textContent = data.nova_description || 'No specific insights available.';
-            if (data.nova_score === 1) {
-                keyInsightsElem.className = 'text-green-700 bg-green-50 p-3 rounded-md';
-            } else if (data.nova_score === 2) {
-                keyInsightsElem.className = 'text-lime-700 bg-lime-50 p-3 rounded-md';
-            } else if (data.nova_score === 3) {
-                keyInsightsElem.className = 'text-yellow-700 bg-yellow-50 p-3 rounded-md';
-            } else if (data.nova_score === 4) {
-                keyInsightsElem.className = 'text-red-700 bg-red-50 p-3 rounded-md';
-            } else {
-                keyInsightsElem.className = 'text-gray-700 bg-gray-50 p-3 rounded-md';
-            }
-
-
-            // Data Completeness
-            const dataScore = data.data_score !== undefined ? data.data_score : 0.0;
-            const dataCompletenessLevel = data.data_completeness_level || 'N/A';
-            const numMatched = data.num_matched !== undefined ? data.num_matched : 0;
-            const numTotal = data.num_total !== undefined ? data.num_total : 0;
-
-            dataScoreValueElem.textContent = `${dataScore.toFixed(2)}%`;
-            dataCompletenessLevelElem.textContent = dataCompletenessLevel;
-            dataCompletenessBarFillElem.style.width = `${dataScore}%`;
-            dataCompletenessDetailsElem.textContent = `Identified ${numMatched} of ${numTotal} total components.`;
-
-            // Ingredient Analysis
-            ingredientGroupsElem.innerHTML = ''; // Clear previous groups
-
-            // Ensure these properties exist and are arrays before passing
-            const identifiedFdaNonCommon = Array.isArray(data.identified_fda_non_common) ? data.identified_fda_non_common : [];
-            const identifiedFdaCommon = Array.isArray(data.identified_fda_common) ? data.identified_fda_common : [];
-            const identifiedCommonIngredientsOnly = Array.isArray(data.identified_common_ingredients_only) ? data.identified_common_ingredients_only : [];
-            const trulyUnidentifiedIngredients = Array.isArray(data.truly_unidentified_ingredients) ? data.truly_unidentified_ingredients : [];
-
-
-            ingredientGroupsElem.appendChild(createIngredientGroup(
-                'Common & Minimally Processed Ingredients',
-                identifiedCommonIngredientsOnly,
-                'common'
-            ));
-            ingredientGroupsElem.appendChild(createIngredientGroup(
-                'Common FDA-Regulated Substances',
-                identifiedFdaCommon,
-                'fda_common'
-            ));
-            ingredientGroupsElem.appendChild(createIngredientGroup(
-                'FDA Substances Detected (Non-Common)',
-                identifiedFdaNonCommon,
-                'fda_non_common'
-            ));
-            ingredientGroupsElem.appendChild(createIngredientGroup(
-                'Truly Unidentified Ingredients',
-                trulyUnidentifiedIngredients,
-                'unidentified'
-            ));
-
-            productDetailsDiv.classList.remove('hidden');
-            setTimeout(() => productDetailsDiv.classList.remove('opacity-0'), 10); // Fade in
-        }
-
-        scanButton.addEventListener('click', async () => {
-            const gtin = gtinInput.value.trim();
-            if (!gtin) {
-                showModal('Input Error', 'Please enter a GTIN/UPC.');
-                return;
-            }
-
-            productDetailsDiv.classList.add('opacity-0');
-            setTimeout(() => productDetailsDiv.classList.add('hidden'), 500); // Fade out and hide
-
-            loadingIndicator.classList.remove('hidden');
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/gtin-lookup`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ gtin: gtin })
-                });
-
-                const data = await response.json();
-                console.log("Backend response data:", data); // Log the raw response from backend
-
-                if (response.ok) {
-                    if (data.status === 'not_found') {
-                        showModal('Product Not Found', `No product found for GTIN: ${gtin}.`);
-                        productDetailsDiv.classList.add('hidden', 'opacity-0');
-                    } else {
-                        // Pass structured data directly to display function
-                        // We need to calculate num_matched and num_total on the frontend for the data score bar
-                        // Ensure optional chaining for nested properties
-                        const num_matched = (data.identified_fda_non_common?.length || 0) + 
-                                            (data.identified_fda_common?.length || 0) + 
-                                            (data.identified_common_ingredients_only?.length || 0);
-                        const num_total = num_matched + (data.truly_unidentified_ingredients?.length || 0);
-
-                        displayProductDetails({
-                            ...data, // Spread all existing data
-                            num_matched: num_matched,
-                            num_total: num_total
-                        });
-                    }
-                } else {
-                    showModal('API Error', data.message || data.error || 'An unknown error occurred.');
-                    productDetailsDiv.classList.add('hidden', 'opacity-0');
-                }
-            } catch (error) {
-                console.error('Fetch error:', error);
-                showModal('Network Error', 'Could not connect to the backend server. Please check your internet connection or the API URL.');
-                productDetailsDiv.classList.add('hidden', 'opacity-0');
-            } finally {
-                loadingIndicator.classList.add('hidden');
-            }
-        });
-    </script>
-
-<!-- Trust Report Section -->
-<div id="trust-report" class="mt-8 hidden">
-  <h2 class="text-xl font-semibold mb-2">Trust Report</h2>
-  <div id="trust-report-content" class="space-y-4">
-    <!-- Dynamic content inserted here -->
+    <div id="output" class="max-w-3xl w-full p-6 bg-white rounded-2xl shadow-md mt-6 hidden prose"></div>
   </div>
-</div>
 
+  <script>
+    const API_URL = "https://smart-grocery-backend-jxku.onrender.com/gtin-lookup";
+
+    async function submitGTIN(gtin) {
+      const modal = document.getElementById('modal');
+      const modalMessage = document.getElementById('modalMessage');
+
+      modalMessage.innerText = 'Scanning product…';
+      modal.classList.remove('hidden');
+
+      try {
+        const response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ gtin })
+        });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderMarkdown(data.markdown);
+        modal.classList.add('hidden');
+      } catch (error) {
+        console.error('Error:', error);
+        modalMessage.innerText = '❌ Error: Could not reach backend.\n\nCheck your internet or backend deployment.';
+      }
+    }
+
+    function renderMarkdown(markdownText) {
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = marked.parse(markdownText);
+      outputDiv.classList.remove('hidden');
+    }
+  </script>
 </body>
 </html>
