@@ -5,74 +5,96 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Grocery Lens</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
-  <div class="min-h-screen flex flex-col items-center justify-start pt-16 px-4">
-    <h1 class="text-4xl font-bold mb-4 text-center">Smart Grocery Lens</h1>
-    <p class="text-lg text-center mb-6 max-w-xl">Enter a barcode number (GTIN) to analyze its ingredients and see its Trust Report.</p>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-2xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-4">Smart Grocery Lens</h1>
 
-    <div class="w-full max-w-md mb-6">
+    <!-- GTIN Input -->
+    <div class="mb-6">
       <input
-        type="text"
         id="gtinInput"
-        placeholder="Enter GTIN barcode (e.g., 071998000051)"
-        class="w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+        type="text"
+        placeholder="Enter a barcode (GTIN)..."
+        class="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
       <button
         onclick="submitGTIN()"
-        class="mt-4 w-full bg-blue-500 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition"
+        class="mt-3 w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
       >
-        Scan Product
+        Analyze Product
       </button>
     </div>
 
-    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
-      <div class="bg-white p-6 rounded-2xl shadow-lg max-w-sm text-center">
-        <p id="modalMessage" class="text-lg font-semibold text-gray-700">Scanning product…</p>
-      </div>
-    </div>
+    <!-- Result Section -->
+    <div id="resultContainer" class="hidden">
+      <div id="resultText" class="mb-4 text-sm text-gray-700"></div>
 
-    <!-- ✅ Add these missing elements -->
-    <div id="resultContainer" class="max-w-3xl w-full p-6 bg-white rounded-2xl shadow-md mt-6 hidden">
-      <div id="resultText" class="prose"></div>
+      <!-- Trust Report Block -->
+      <div id="trust-report" class="mt-6 space-y-4"></div>
     </div>
   </div>
 
-<script>
-  async function submitGTIN() {
-    const gtinInput = document.getElementById("gtinInput");
-    const resultContainer = document.getElementById("resultContainer");
-    const resultText = document.getElementById("resultText");
-    const gtin = gtinInput.value.trim();
+  <!-- Script -->
+  <script>
+    async function submitGTIN() {
+      const gtinInput = document.getElementById("gtinInput");
+      const resultContainer = document.getElementById("resultContainer");
+      const resultText = document.getElementById("resultText");
+      const trustReport = document.getElementById("trust-report");
+      const gtin = gtinInput.value.trim();
 
-    resultText.innerText = "⏳ Loading…";
-    resultContainer.style.display = "block";
+      resultText.innerText = "⏳ Loading…";
+      resultContainer.style.display = "block";
+      trustReport.innerHTML = "";
 
-    try {
-      console.log("Submitting GTIN:", gtin);
+      try {
+        console.log("Submitting GTIN:", gtin);
 
-      const response = await fetch("https://smart-grocery-backend-jxku.onrender.com/gtin-lookup", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gtin })
-      });
+        const response = await fetch("https://smart-grocery-backend-jxku.onrender.com/gtin-lookup", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gtin })
+        });
 
-      const raw = await response.text();
-      console.log("Backend raw response:", raw);
+        const raw = await response.text();
+        console.log("Backend raw response:", raw);
 
-      if (!raw || raw.trim() === "") {
-        throw new Error("Empty response from backend.");
+        if (!raw || raw.trim() === "") {
+          throw new Error("Empty response from backend.");
+        }
+
+        const parsed = JSON.parse(raw);
+
+        // Basic product summary
+        resultText.innerHTML = `
+          <p><strong>${parsed.description || "Product Description"}</strong></p>
+          <p>Brand: ${parsed.brand_name || "Unknown"} (${parsed.brand_owner || "Unknown"})</p>
+        `;
+
+        // Trust Report
+        if (parsed.trust_report_html) {
+          trustReport.innerHTML = parsed.trust_report_html;
+        } else {
+          trustReport.innerHTML = "<p class='text-sm text-gray-500'>No Trust Report available.</p>";
+        }
+
+      } catch (err) {
+        console.error("Failed to parse response:", err);
+        resultText.innerHTML = "<p class='text-red-500'>❌ Error loading product. Try again.</p>";
+        trustReport.innerHTML = "";
       }
-
-      resultText.innerHTML = marked.parse(raw);
-
-    } catch (error) {
-      console.error("Error:", error);
-      resultText.innerHTML = `<span class="text-red-600">❌ Error: ${error.message || "Could not reach backend."}</span><br><br>Check your internet or backend deployment.`;
     }
-  }
-</script>
 
+    // Toggle for collapsible sections
+    function toggleCollapse(el) {
+      const content = el.nextElementSibling;
+      if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+      } else {
+        content.classList.add('hidden');
+      }
+    }
+  </script>
 </body>
 </html>
