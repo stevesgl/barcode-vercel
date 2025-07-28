@@ -5,12 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Smart Grocery Lens</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    function toggleSection(id, iconId) {
+      const section = document.getElementById(id);
+      const icon = document.getElementById(iconId);
+      if (section.style.display === "none") {
+        section.style.display = "block";
+        icon.textContent = "-"; // Change + to -
+      } else {
+        section.style.display = "none";
+        icon.textContent = "+"; // Change - to +
+      }
+    }
+
+    function toggleItem(id, iconId) {
+      const content = document.getElementById(id);
+      const icon = document.getElementById(iconId);
+      if (content.style.display === "none") {
+        content.style.display = "block";
+        icon.textContent = "-"; // Change + to -
+      } else {
+        content.style.display = "none";
+        icon.textContent = "+"; // Change - to +
+      }
+    }
+  </script>
 </head>
 <body class="bg-gray-50 text-gray-900">
   <div class="max-w-2xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-4">Smart Grocery Lens</h1>
 
-    <!-- GTIN Input -->
     <div class="mb-6">
       <input
         id="gtinInput"
@@ -26,31 +50,32 @@
       </button>
     </div>
 
-    <!-- Result Section -->
     <div id="resultContainer" class="hidden">
       <div id="resultText" class="mb-4 text-sm text-gray-700"></div>
 
-      <!-- Trust Report Block -->
       <div id="trust-report" class="mt-6 space-y-4"></div>
     </div>
   </div>
 
-  <!-- Script -->
   <script>
+    // Existing submitGTIN function
     async function submitGTIN() {
       const gtinInput = document.getElementById("gtinInput");
+      const gtin = gtinInput.value.trim();
       const resultContainer = document.getElementById("resultContainer");
       const resultText = document.getElementById("resultText");
       const trustReport = document.getElementById("trust-report");
-      const gtin = gtinInput.value.trim();
 
-      resultText.innerText = "⏳ Loading…";
-      resultContainer.style.display = "block";
-      trustReport.innerHTML = "";
+      resultContainer.classList.remove("hidden");
+      resultText.innerHTML = "<p>Loading product data...</p>";
+      trustReport.innerHTML = ""; // Clear previous report
+
+      if (!gtin) {
+        resultText.innerHTML = "<p class='text-red-500'>Please enter a GTIN.</p>";
+        return;
+      }
 
       try {
-        console.log("Submitting GTIN:", gtin);
-
         const response = await fetch("https://smart-grocery-backend-jxku.onrender.com/gtin-lookup", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -86,15 +111,8 @@
       }
     }
 
-    // Toggle for collapsible sections
-    function toggleCollapse(el) {
-      const content = el.nextElementSibling;
-      if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-      } else {
-        content.classList.add('hidden');
-      }
-    }
+    // Removed the old toggleCollapse function if it was here.
+    // The toggleSection and toggleItem functions are now above in the <head>.
   </script>
 </body>
 </html>
